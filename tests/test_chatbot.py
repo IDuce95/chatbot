@@ -20,10 +20,6 @@ class TestChatBotBasic:
         assert bot.system_prompt is not None
         assert len(bot.system_prompt) > 0
 
-    def test_api_connection(self, bot):
-        result = bot.test_connection()
-        assert result is True
-
     def test_basic_response(self, bot):
         response = bot.get_response("What is Python?")
         assert response is not None

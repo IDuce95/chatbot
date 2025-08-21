@@ -14,7 +14,6 @@ class TestChatBotPerformance:
     def bot(self):
         return ChatBot()
 
-    @pytest.mark.slow
     def test_multiple_requests_performance(self, bot):
         questions = [
             "What is Python?",
@@ -47,7 +46,6 @@ class TestChatBotPerformance:
         assert avg_time < 15
         assert success_rate >= 100
 
-    @pytest.mark.slow
     def test_complex_questions_performance(self, bot):
         complex_questions = [
             "Explain object-oriented programming in Python with examples",
@@ -66,7 +64,6 @@ class TestChatBotPerformance:
             assert len(response) > 100
             assert response_time < 20
 
-    @pytest.mark.slow
     def test_concurrent_requests_simulation(self, bot):
         questions = ["What is Python?"] * 3
 
