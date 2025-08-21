@@ -22,7 +22,7 @@ class TestChatBotBasic:
 
     def test_api_connection(self, bot):
         result = bot.test_connection()
-        assert result == True
+        assert result is True
 
     def test_basic_response(self, bot):
         response = bot.get_response("What is Python?")
@@ -45,7 +45,7 @@ class TestChatBotPythonKnowledge:
         response = bot.get_response(question)
         assert response is not None
         assert len(response) > 50
-        
+
         response_lower = response.lower()
         for keyword in expected_keywords:
             assert keyword.lower() in response_lower
@@ -85,7 +85,7 @@ class TestChatBotPerformance:
         start_time = time.time()
         response = bot.get_response("What is Python?")
         end_time = time.time()
-        
+
         response_time = end_time - start_time
         assert response is not None
         assert response_time < 15
@@ -98,22 +98,22 @@ class TestChatBotPerformance:
             "Explain for loops",
             "What is pandas?"
         ]
-        
+
         total_time = 0
         successful_responses = 0
-        
+
         for question in questions:
             start = time.time()
             response = bot.get_response(question)
             end = time.time()
-            
+
             total_time += (end - start)
             if response:
                 successful_responses += 1
-        
+
         avg_time = total_time / len(questions)
         success_rate = (successful_responses / len(questions)) * 100
-        
+
         # Multiple requests should have reasonable average time
         assert avg_time < 15
         assert success_rate >= 100
