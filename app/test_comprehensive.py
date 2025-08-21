@@ -3,113 +3,111 @@ import time
 
 
 def comprehensive_test():
-    """Kompleksowy test funkcjonalności ChatBota"""
     try:
-        print("🧪 KOMPLEKSOWY TEST CHATBOTA")
+        print("🧪 COMPREHENSIVE CHATBOT TEST")
         print("=" * 60)
 
         bot = ChatBot()
 
-        print("\n1️⃣ TEST POŁĄCZENIA Z API")
+        print("\n1️⃣ API CONNECTION TEST")
         print("-" * 30)
         connection_ok = bot.test_connection()
 
         if not connection_ok:
-            print("❌ Test zakończony - brak połączenia z API")
+            print("❌ Test ended - no API connection")
             return False
 
-        print("\n2️⃣ TEST WIEDZY O PYTHON")
+        print("\n2️⃣ PYTHON KNOWLEDGE TEST")
         print("-" * 30)
         python_questions = [
-            "Jak działa list comprehension w Python?",
-            "Co to są dekoratory w Python?",
-            "Wyjaśnij różnicę między metodami klasy a metodami statycznymi",
+            "How does list comprehension work in Python?",
+            "What are decorators in Python?",
+            "Explain the difference between class methods and static methods",
         ]
 
         for i, question in enumerate(python_questions, 1):
-            print(f"\n📝 Pytanie {i}: {question}")
+            print(f"\n📝 Question {i}: {question}")
             response = bot.get_response(question)
             if response and len(response) > 50:
-                print("✅ Odpowiedź: OK (szczegółowa odpowiedź)")
+                print("✅ Response: OK (detailed response)")
             else:
-                print("❌ Odpowiedź: Zbyt krótka lub brak")
+                print("❌ Response: Too short or missing")
 
-        print("\n3️⃣ TEST WIEDZY O BIBLIOTEKACH")
+        print("\n3️⃣ LIBRARIES KNOWLEDGE TEST")
         print("-" * 30)
         library_questions = [
-            "Jak używać pandas do wczytania pliku CSV?",
-            "Pokaż przykład użycia numpy do operacji na macierzach",
-            "Jak stworzyć prostą aplikację Flask?",
+            "How to use pandas to read a CSV file?",
+            "Show an example of using numpy for matrix operations",
+            "How to create a simple Flask application?",
         ]
 
         for i, question in enumerate(library_questions, 1):
-            print(f"\n📝 Pytanie {i}: {question}")
+            print(f"\n📝 Question {i}: {question}")
             response = bot.get_response(question)
             if response and ("import" in response or "def" in response):
-                print("✅ Odpowiedź: OK (zawiera przykłady kodu)")
+                print("✅ Response: OK (contains code examples)")
             else:
-                print("❌ Odpowiedź: Brak przykładów kodu")
+                print("❌ Response: Missing code examples")
 
-        print("\n4️⃣ TEST PYTAŃ OGÓLNYCH")
+        print("\n4️⃣ GENERAL QUESTIONS TEST")
         print("-" * 30)
         general_questions = [
-            "Jakie są zalety pracy zdalnej?",
-            "Opowiedz o historii komputerów",
+            "What are the advantages of remote work?",
+            "Tell me about computer history",
         ]
 
         for i, question in enumerate(general_questions, 1):
-            print(f"\n📝 Pytanie {i}: {question}")
+            print(f"\n📝 Question {i}: {question}")
             response = bot.get_response(question)
             if response and len(response) > 100:
-                print("✅ Odpowiedź: OK (odpowiada na pytania spoza programowania)")
+                print("✅ Response: OK (answers non-programming questions)")
             else:
-                print("❌ Odpowiedź: Za krótka")
+                print("❌ Response: Too short")
 
-        print("\n5️⃣ TEST WYDAJNOŚCI")
+        print("\n5️⃣ PERFORMANCE TEST")
         print("-" * 30)
         start_time = time.time()
-        _ = bot.get_response("Co to jest Python?")
+        _ = bot.get_response("What is Python?")
         end_time = time.time()
 
         response_time = end_time - start_time
-        print(f"⏱️ Czas odpowiedzi: {response_time:.2f} sekund")
+        print(f"⏱️ Response time: {response_time:.2f} seconds")
 
         if response_time < 10:
-            print("✅ Wydajność: OK (< 10 sekund)")
+            print("✅ Performance: OK (< 10 seconds)")
         else:
-            print("⚠️ Wydajność: Wolna (> 10 sekund)")
+            print("⚠️ Performance: Slow (> 10 seconds)")
 
-        print("\n6️⃣ TEST KONFIGURACJI")
+        print("\n6️⃣ CONFIGURATION TEST")
         print("-" * 30)
         print(f"🤖 Model: {bot.model_name}")
         print(f"🌡️ Temperature: {bot.temperature}")
         print(f"📏 Max tokens: {bot.max_tokens}")
-        print(f"💬 System prompt: {'Ustawiony' if bot.system_prompt else 'Brak'}")
+        print(f"💬 System prompt: {'Set' if bot.system_prompt else 'Missing'}")
 
         print("\n" + "=" * 60)
-        print("✅ WSZYSTKIE TESTY ZAKOŃCZONE!")
-        print("🎯 ChatBot jest gotowy do użycia w Fazie 3")
+        print("✅ ALL TESTS COMPLETED!")
+        print("🎯 ChatBot is ready for Phase 3")
         return True
 
     except Exception as e:
-        print(f"❌ Błąd podczas testów: {e}")
+        print(f"❌ Error during tests: {e}")
         return False
 
 
 def performance_test():
-    """Test wydajności z wieloma zapytaniami"""
     try:
-        print("\n🚀 TEST WYDAJNOŚCI - SERIA ZAPYTAŃ")
+        print("\n🚀 PERFORMANCE TEST - SERIES OF QUERIES")
         print("=" * 50)
 
         bot = ChatBot()
 
         questions = [
-            "Co to jest Python?",
-            "Jak utworzyć funkcję?",
-            "Co to są listy?",
-            "Wyjaśnij pętle for",
-            "Co to jest pandas?"
+            "What is Python?",
+            "How to create a function?",
+            "What are lists?",
+            "Explain for loops",
+            "What is pandas?"
         ]
 
         total_time = 0
@@ -129,27 +127,27 @@ def performance_test():
             else:
                 status = "❌"
 
-            print(f"{status} Pytanie {i}: {duration:.2f}s")
+            print(f"{status} Question {i}: {duration:.2f}s")
 
         avg_time = total_time / len(questions)
         success_rate = (successful_responses / len(questions)) * 100
 
-        print("\n📊 WYNIKI:")
-        print(f"⏱️ Średni czas odpowiedzi: {avg_time:.2f}s")
-        print(f"✅ Wskaźnik sukcesu: {success_rate:.1f}%")
-        print(f"🔄 Łączny czas: {total_time:.2f}s")
+        print("\n📊 RESULTS:")
+        print(f"⏱️ Average response time: {avg_time:.2f}s")
+        print(f"✅ Success rate: {success_rate:.1f}%")
+        print(f"🔄 Total time: {total_time:.2f}s")
 
     except Exception as e:
-        print(f"❌ Błąd podczas testu wydajności: {e}")
+        print(f"❌ Error during performance test: {e}")
 
 
 if __name__ == "__main__":
-    print("🎯 Wybierz test:")
-    print("1. Kompleksowy test funkcjonalności")
-    print("2. Test wydajności")
-    print("3. Oba testy")
+    print("🎯 Choose test:")
+    print("1. Comprehensive functionality test")
+    print("2. Performance test")
+    print("3. Both tests")
 
-    choice = input("\nWybór (1/2/3): ").strip()
+    choice = input("\nChoice (1/2/3): ").strip()
 
     if choice == "1":
         comprehensive_test()
@@ -159,4 +157,4 @@ if __name__ == "__main__":
         comprehensive_test()
         performance_test()
     else:
-        print("❌ Nieprawidłowy wybór!")
+        print("❌ Invalid choice!")
