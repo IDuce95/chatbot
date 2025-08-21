@@ -45,3 +45,35 @@ class ChatBot:
         except Exception as e:
             print(f"❌ Error communicating with OpenAI: {e}")
             return None
+
+    def start_chatting(self):
+        print("🤖 CodeBot ready to work!")
+        print("💡 Tip: Type 'q' to stop")
+        print("-" * 50)
+
+        while True:
+            try:
+                user_input = input("\n👤 You: ").strip()
+
+                if user_input.lower() == 'q':
+                    print("👋 See you later!")
+                    break
+
+                if not user_input:
+                    print("⚠️ Enter a question or command!")
+                    continue
+
+                print("🤖 CodeBot: 🤔 Thinking...")
+                response = self.get_response(user_input)
+
+                if response:
+                    print(f"🤖 CodeBot: {response}")
+                else:
+                    print("❌ Failed to get response. Try again!")
+
+            except KeyboardInterrupt:
+                print("\n\n👋 See you later!")
+                break
+            except Exception as e:
+                print(f"❌ Error occurred: {e}")
+                print("🔄 Try again...")

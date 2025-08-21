@@ -114,7 +114,6 @@ class TestChatBotPerformance:
         avg_time = total_time / len(questions)
         success_rate = (successful_responses / len(questions)) * 100
 
-        # Multiple requests should have reasonable average time
         assert avg_time < 15
         assert success_rate >= 100
 
