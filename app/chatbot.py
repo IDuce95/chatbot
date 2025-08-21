@@ -23,7 +23,7 @@ class ChatBot:
         self.max_tokens = self.config["model"]["max_tokens"]
         self.system_prompt = self.config["system"]["preprompt"]
 
-        print(f"✅ ChatBot initialized with model: {self.model_name}")
+        print(f"\nCodeBot initialized with model: {self.model_name}")
 
     def get_response(self, user_message: str) -> Optional[str]:
 
@@ -43,37 +43,35 @@ class ChatBot:
             return response.choices[0].message.content
 
         except Exception as e:
-            print(f"❌ Error communicating with OpenAI: {e}")
+            print(f"Error communicating with OpenAI: {e}")
             return None
 
     def start_chatting(self):
-        print("🤖 CodeBot ready to work!")
-        print("💡 Tip: Type 'q' to stop")
-        print("-" * 50)
+        print("Type 'q' to stop")
+        print("=" * 50)
 
         while True:
             try:
                 user_input = input("\n👤 You: ").strip()
 
                 if user_input.lower() == 'q':
-                    print("👋 See you later!")
+                    print("🤖 CodeBot: See you later!")
                     break
 
                 if not user_input:
                     print("⚠️ Enter a question or command!")
                     continue
 
-                print("🤖 CodeBot: 🤔 Thinking...")
+                print("🤖 CodeBot: thinking...")
                 response = self.get_response(user_input)
 
                 if response:
                     print(f"🤖 CodeBot: {response}")
                 else:
-                    print("❌ Failed to get response. Try again!")
+                    print("Failed to get response. Try again!")
 
             except KeyboardInterrupt:
-                print("\n\n👋 See you later!")
+                print("\n🤖 CodeBot: See you later!")
                 break
             except Exception as e:
-                print(f"❌ Error occurred: {e}")
-                print("🔄 Try again...")
+                print(f"Error occurred: {e}")
