@@ -3,3 +3,4 @@ todo.txt
 .env
 .vscode
 __pycache__
+*.pdf
