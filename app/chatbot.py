@@ -1,15 +1,21 @@
 import os
-from typing import Optional, List, Dict
+from typing import Dict, List, Optional
+
 import openai
-from dotenv import load_dotenv
 import toml
+from dotenv import load_dotenv
+
+try:
+    from .rag_manager import RAGManager
+except ImportError:
+    from rag_manager import RAGManager
 
 
 load_dotenv()
 
 
 class ChatBot:
-    def __init__(self, config_path: str = "config.toml"):
+    def __init__(self, config_path: str = "config.toml", use_rag: bool = True):
         self.config = toml.load(config_path)
 
         self.api_key = os.getenv("OPENAI_API_KEY")
@@ -19,11 +25,36 @@ class ChatBot:
         self.client = openai.OpenAI(api_key=self.api_key)
         self.conversation_history: List[Dict[str, str]] = []
         self.model_info = f"CodeBot initialized with model: {self.config['model']['name']}"
+        self.last_rag_used = False
+
+        self.use_rag = use_rag
+        self.rag_manager = None
+        if use_rag:
+            try:
+                self.rag_manager = RAGManager()
+                self.model_info += " (with RAG knowledge base)"
+            except Exception as e:
+                print(f"Warning: Could not initialize RAG manager: {e}")
+                self.use_rag = False
 
     def get_response(self, user_message: str) -> Optional[str]:
-
         try:
-            messages = [{"role": "system", "content": self.config["system"]["preprompt"]}]
+            context = ""
+            rag_used = False
+
+            if self.use_rag and self.rag_manager:
+                try:
+                    context, rag_used = self.rag_manager.get_context_with_relevance(user_message, k=3)
+                except Exception as e:
+                    print(f"Warning: RAG search failed: {e}")
+                    context = ""
+                    rag_used = False
+
+            system_content = self.config["system"]["preprompt"]
+            if context:
+                system_content += f"\n\nRelevant context from knowledge base:\n{context}"
+
+            messages = [{"role": "system", "content": system_content}]
             messages.extend(self.conversation_history)
             messages.append({"role": "user", "content": user_message})
 
@@ -38,6 +69,8 @@ class ChatBot:
 
             self.conversation_history.append({"role": "user", "content": user_message})
             self.conversation_history.append({"role": "assistant", "content": assistant_response})
+
+            self.last_rag_used = rag_used
 
             return assistant_response
 

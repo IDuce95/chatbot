@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 from chatbot import ChatBot
 
+
 app = FastAPI(
     title="CodeBot API",
     description="API for CodeBot - Programming Assistant with conversation history",
@@ -21,7 +22,7 @@ def get_chatbot():
     global chatbot_instance
     if chatbot_instance is None:
         try:
-            chatbot_instance = ChatBot()
+            chatbot_instance = ChatBot(use_rag=True)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to initialize ChatBot: {e}")
     return chatbot_instance
@@ -48,7 +49,6 @@ class StatusResponse(BaseModel):
 
 @app.get("/", response_model=StatusResponse)
 async def root():
-    """Get API status and model information"""
     bot = get_chatbot()
     return StatusResponse(
         status="CodeBot API is running",
@@ -58,7 +58,6 @@ async def root():
 
 @app.post("/chat", response_model=MessageResponse)
 async def chat(request: MessageRequest):
-    """Send a message to ChatBot and get response"""
     try:
         bot = get_chatbot()
         response = bot.get_response(request.message)
@@ -74,7 +73,6 @@ async def chat(request: MessageRequest):
 
 @app.get("/history", response_model=HistoryResponse)
 async def get_history():
-    """Get conversation history"""
     try:
         bot = get_chatbot()
         history = bot.get_history()
@@ -86,7 +84,6 @@ async def get_history():
 
 @app.delete("/history")
 async def clear_history():
-    """Clear conversation history"""
     try:
         bot = get_chatbot()
         bot.clear_history()
@@ -98,7 +95,6 @@ async def clear_history():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint"""
     return {"status": "healthy"}
 
 if __name__ == "__main__":

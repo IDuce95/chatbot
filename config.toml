@@ -40,10 +40,13 @@ docs_directory = "./docs"
 chunk_size = 1000
 chunk_overlap = 200
 max_retrieved_docs = 5
+# vectorstore_type = "chroma"
+vectorstore_type = "faiss"
 
 
 [database]
 persist_directory = "./chroma_db"
+faiss_index_path = "./faiss_index"
 collection_name = "programming_docs"
 
 

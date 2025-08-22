@@ -12,7 +12,11 @@ from chatbot import ChatBot
 class TestChatBot:
     @pytest.fixture
     def bot(self):
-        return ChatBot()
+        return ChatBot(use_rag=False)
+
+    @pytest.fixture
+    def bot_with_rag(self):
+        return ChatBot(use_rag=True)
 
     @pytest.fixture
     def mock_config(self):
@@ -62,7 +66,7 @@ class TestChatBot:
         mock_openai.return_value = mock_client
 
         with patch('builtins.print'):
-            bot = ChatBot()
+            bot = ChatBot(use_rag=False)
 
         assert bot.config["model"]["name"] == "gpt-4o-mini"
         assert bot.config["model"]["temperature"] == 0.1
@@ -153,3 +157,15 @@ class TestChatBot:
         model_info = bot.get_model_info()
         assert "CodeBot initialized with model:" in model_info
         assert "gpt-4o-mini" in model_info
+
+    def test_rag_functionality(self, bot_with_rag):
+        if not bot_with_rag.use_rag:
+            pytest.skip("RAG not available")
+
+        response = bot_with_rag.get_response("What is LangChain?")
+
+        assert response is not None
+        assert len(response) > 50
+        assert "langchain" in response.lower() or "framework" in response.lower()
+
+        assert "RAG" in bot_with_rag.model_info or "knowledge base" in bot_with_rag.model_info
