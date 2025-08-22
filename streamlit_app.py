@@ -34,22 +34,11 @@ def main():
 
         st.info(st.session_state.chatbot.get_model_info())
 
-        if st.button("🗑️ Clear chat history", type="secondary"):
+        if st.button("Clear chat history", type="secondary"):
             st.session_state.chatbot.clear_history()
             st.session_state.messages = []
             st.rerun()
 
-        st.divider()
-
-        st.subheader("Chat Stats")
-        history = st.session_state.chatbot.get_history()
-        st.metric("Messages in history", len(history))
-
-        if history:
-            user_messages = len([msg for msg in history if msg["role"] == "user"])
-            assistant_messages = len([msg for msg in history if msg["role"] == "assistant"])
-            st.metric("User messages", user_messages)
-            st.metric("Assistant messages", assistant_messages)
 
     chat_container = st.container()
 
@@ -66,7 +55,7 @@ def main():
 
         with st.chat_message("assistant"):
             thinking_placeholder = st.empty()
-            thinking_placeholder.markdown("🤔 **Thinking...**")
+            thinking_placeholder.markdown("**Thinking...**")
 
             try:
                 response = st.session_state.chatbot.get_response(prompt)
