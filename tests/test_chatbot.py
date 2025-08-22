@@ -144,7 +144,12 @@ class TestChatBot:
     def test_clear_history(self, bot):
         bot.get_response("Test message")
         assert len(bot.get_history()) == 2
-
+        
         bot.clear_history()
         assert len(bot.get_history()) == 0
         assert bot.conversation_history == []
+
+    def test_get_model_info(self, bot):
+        model_info = bot.get_model_info()
+        assert "CodeBot initialized with model:" in model_info
+        assert "gpt-4o-mini" in model_info

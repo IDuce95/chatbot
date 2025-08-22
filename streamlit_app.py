@@ -32,6 +32,8 @@ def main():
     with st.sidebar:
         st.header("Settings")
 
+        st.info(st.session_state.chatbot.get_model_info())
+
         if st.button("🗑️ Clear chat history", type="secondary"):
             st.session_state.chatbot.clear_history()
             st.session_state.messages = []

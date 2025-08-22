@@ -18,8 +18,7 @@ class ChatBot:
 
         self.client = openai.OpenAI(api_key=self.api_key)
         self.conversation_history: List[Dict[str, str]] = []
-
-        print(f"\nCodeBot initialized with model: {self.config['model']['name']}")
+        self.model_info = f"CodeBot initialized with model: {self.config['model']['name']}"
 
     def get_response(self, user_message: str) -> Optional[str]:
 
@@ -52,7 +51,11 @@ class ChatBot:
     def get_history(self) -> List[Dict[str, str]]:
         return self.conversation_history.copy()
 
+    def get_model_info(self) -> str:
+        return self.model_info
+
     def start_chatting(self):
+        print(self.model_info)
         print("Type 'q' to stop")
         print("=" * 50)
 
