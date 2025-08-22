@@ -46,6 +46,12 @@ class ChatBot:
             print(f"Error communicating with OpenAI: {e}")
             return None
 
+    def clear_history(self):
+        self.conversation_history = []
+
+    def get_history(self) -> List[Dict[str, str]]:
+        return self.conversation_history.copy()
+
     def start_chatting(self):
         print("Type 'q' to stop")
         print("=" * 50)

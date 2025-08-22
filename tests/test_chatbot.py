@@ -28,11 +28,11 @@ class TestChatBot:
         }
 
     def test_chatbot_initialization(self, bot):
-        assert bot.model_name == "gpt-4o-mini"
-        assert bot.temperature == 0.1
-        assert bot.max_tokens == 4000
-        assert bot.system_prompt is not None
-        assert len(bot.system_prompt) > 0
+        assert bot.config["model"]["name"] == "gpt-4o-mini"
+        assert bot.config["model"]["temperature"] == 0.1
+        assert bot.config["model"]["max_tokens"] == 4000
+        assert bot.config["system"]["preprompt"] is not None
+        assert len(bot.config["system"]["preprompt"]) > 0
 
     def test_basic_response(self, bot):
         response = bot.get_response("Hello")
@@ -64,10 +64,10 @@ class TestChatBot:
         with patch('builtins.print'):
             bot = ChatBot()
 
-        assert bot.model_name == "gpt-4o-mini"
-        assert bot.temperature == 0.1
-        assert bot.max_tokens == 4000
-        assert bot.system_prompt == "You are a test assistant"
+        assert bot.config["model"]["name"] == "gpt-4o-mini"
+        assert bot.config["model"]["temperature"] == 0.1
+        assert bot.config["model"]["max_tokens"] == 4000
+        assert bot.config["system"]["preprompt"] == "You are a test assistant"
 
     @patch('chatbot.toml.load')
     @patch('chatbot.os.getenv')
