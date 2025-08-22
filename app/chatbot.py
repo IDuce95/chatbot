@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Optional, List, Dict
 import openai
 from dotenv import load_dotenv
 import toml
@@ -17,30 +17,30 @@ class ChatBot:
             raise ValueError("Missing OpenAI API key in environment variables")
 
         self.client = openai.OpenAI(api_key=self.api_key)
+        self.conversation_history: List[Dict[str, str]] = []
 
-        self.model_name = self.config["model"]["name"]
-        self.temperature = self.config["model"]["temperature"]
-        self.max_tokens = self.config["model"]["max_tokens"]
-        self.system_prompt = self.config["system"]["preprompt"]
-
-        print(f"\nCodeBot initialized with model: {self.model_name}")
+        print(f"\nCodeBot initialized with model: {self.config['model']['name']}")
 
     def get_response(self, user_message: str) -> Optional[str]:
 
         try:
-            messages = [
-                {"role": "system", "content": self.system_prompt},
-                {"role": "user", "content": user_message}
-            ]
+            messages = [{"role": "system", "content": self.config["system"]["preprompt"]}]
+            messages.extend(self.conversation_history)
+            messages.append({"role": "user", "content": user_message})
 
             response = self.client.chat.completions.create(
-                model=self.model_name,
+                model=self.config["model"]["name"],
                 messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
+                temperature=self.config["model"]["temperature"],
+                max_tokens=self.config["model"]["max_tokens"],
             )
 
-            return response.choices[0].message.content
+            assistant_response = response.choices[0].message.content
+
+            self.conversation_history.append({"role": "user", "content": user_message})
+            self.conversation_history.append({"role": "assistant", "content": assistant_response})
+
+            return assistant_response
 
         except Exception as e:
             print(f"Error communicating with OpenAI: {e}")

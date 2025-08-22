@@ -117,3 +117,34 @@ class TestChatBot:
         response_time = end_time - start_time
         assert response is not None
         assert response_time < 15
+
+    def test_conversation_history_initialization(self, bot):
+        assert bot.conversation_history == []
+        assert len(bot.get_history()) == 0
+
+    def test_conversation_history_storage(self, bot):
+        bot.get_response("Hello")
+        history = bot.get_history()
+
+        assert len(history) == 2
+        assert history[0]["role"] == "user"
+        assert history[0]["content"] == "Hello"
+        assert history[1]["role"] == "assistant"
+        assert len(history[1]["content"]) > 0
+
+    def test_conversation_history_multiple_messages(self, bot):
+        bot.get_response("First message")
+        bot.get_response("Second message")
+
+        history = bot.get_history()
+        assert len(history) == 4
+        assert history[0]["content"] == "First message"
+        assert history[2]["content"] == "Second message"
+
+    def test_clear_history(self, bot):
+        bot.get_response("Test message")
+        assert len(bot.get_history()) == 2
+
+        bot.clear_history()
+        assert len(bot.get_history()) == 0
+        assert bot.conversation_history == []
