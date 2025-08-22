@@ -144,7 +144,7 @@ class TestChatBot:
     def test_clear_history(self, bot):
         bot.get_response("Test message")
         assert len(bot.get_history()) == 2
-        
+
         bot.clear_history()
         assert len(bot.get_history()) == 0
         assert bot.conversation_history == []

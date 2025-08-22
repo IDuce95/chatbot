@@ -39,7 +39,6 @@ def main():
             st.session_state.messages = []
             st.rerun()
 
-
     chat_container = st.container()
 
     with chat_container:
