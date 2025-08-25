@@ -8,6 +8,7 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from rag_metrics import RAGMetrics
 
 
 class RAGManager:
@@ -30,6 +31,7 @@ class RAGManager:
             length_function=len,
         )
         self.vectorstore = None
+        self.metrics = RAGMetrics()
         self.setup_vectorstore()
 
     def setup_vectorstore(self):
@@ -173,6 +175,20 @@ class RAGManager:
 
         try:
             results = self.vectorstore.similarity_search_with_score(query, k=k)
+
+            retrieved_docs = []
+            for i, (doc, distance) in enumerate(results):
+                doc_info = {
+                    'id': f"{doc.metadata.get('source_file', 'unknown')}_{i}",
+                    'content': doc.page_content,
+                    'metadata': doc.metadata,
+                    'score': 1.0 - distance,
+                    'distance': distance
+                }
+                retrieved_docs.append(doc_info)
+
+            self.metrics.evaluate_retrieval(query, retrieved_docs)
+
             return results
         except Exception as e:
             print(f"Error searching documents with scores: {e}")
@@ -187,7 +203,18 @@ class RAGManager:
             return "", False
 
         relevant_docs = []
-        for doc, distance in results:
+        retrieved_docs_info = []
+
+        for i, (doc, distance) in enumerate(results):
+            doc_info = {
+                'id': f"{doc.metadata.get('source_file', 'unknown')}_{i}",
+                'content': doc.page_content,
+                'metadata': doc.metadata,
+                'score': 1.0 - distance,
+                'distance': distance
+            }
+            retrieved_docs_info.append(doc_info)
+
             if distance < max_distance:
                 relevant_docs.append(doc)
 
@@ -200,7 +227,9 @@ class RAGManager:
             content = doc.page_content.strip()
             context_parts.append(f"[Doc {i} - {source}]\n{content}")
 
-        return "\n\n".join(context_parts), True
+        context = "\n\n".join(context_parts)
+
+        return context, True
 
     def initialize_database(self):
         print("Initializing RAG database...")
@@ -225,6 +254,17 @@ class RAGManager:
             }
         except Exception as e:
             return {"status": "error", "error": str(e)}
+
+    def get_metrics_summary(self) -> Dict[str, Any]:
+        return self.metrics.get_session_summary()
+
+    def export_metrics(self, filepath: str = "rag_metrics.json"):
+        self.metrics.export_metrics(filepath)
+        print(f"Metrics exported to {filepath}")
+
+    def clear_metrics(self):
+        self.metrics.clear_session()
+        print("Metrics session cleared")
 
 
 if __name__ == "__main__":

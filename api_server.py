@@ -1,12 +1,17 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List, Dict
 import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 from chatbot import ChatBot
+from pydantic_models import (
+    MessageRequest,
+    MessageResponse,
+    HistoryResponse,
+    StatusResponse,
+    MetricsResponse
+)
 
 
 app = FastAPI(
@@ -26,25 +31,6 @@ def get_chatbot():
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to initialize ChatBot: {e}")
     return chatbot_instance
-
-
-class MessageRequest(BaseModel):
-    message: str
-
-
-class MessageResponse(BaseModel):
-    response: str
-    success: bool
-
-
-class HistoryResponse(BaseModel):
-    history: List[Dict[str, str]]
-    count: int
-
-
-class StatusResponse(BaseModel):
-    status: str
-    model_info: str
 
 
 @app.get("/", response_model=StatusResponse)
@@ -96,6 +82,38 @@ async def clear_history():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.get("/metrics", response_model=MetricsResponse)
+async def get_metrics():
+    try:
+        bot = get_chatbot()
+        metrics = bot.get_metrics_summary()
+        return MetricsResponse(metrics=metrics)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting metrics: {e}")
+
+
+@app.post("/metrics/export")
+async def export_metrics():
+    try:
+        bot = get_chatbot()
+        filepath = "api_metrics_export.json"
+        bot.export_metrics(filepath)
+        return {"message": f"Metrics exported to {filepath}"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error exporting metrics: {e}")
+
+
+@app.delete("/metrics")
+async def clear_metrics():
+    try:
+        bot = get_chatbot()
+        bot.clear_metrics()
+        return {"message": "Metrics cleared successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error clearing metrics: {e}")
+
 
 if __name__ == "__main__":
     import uvicorn

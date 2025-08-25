@@ -34,8 +34,12 @@ class ChatBot:
 
     def get_response(self, user_message: str) -> Optional[str]:
         try:
+            import time
+            start_time = time.time()
+
             context = ""
             rag_used = False
+            retrieved_docs_info = []
 
             if self.use_rag and self.rag_manager:
                 try:
@@ -61,11 +65,23 @@ class ChatBot:
             )
 
             assistant_response = response.choices[0].message.content
+            end_time = time.time()
+            response_time = end_time - start_time
 
             self.conversation_history.append({"role": "user", "content": user_message})
             self.conversation_history.append({"role": "assistant", "content": assistant_response})
 
             self.last_rag_used = rag_used
+
+            if self.use_rag and self.rag_manager:
+                self.rag_manager.metrics.log_interaction(
+                    query=user_message,
+                    retrieved_docs=retrieved_docs_info,
+                    response=assistant_response,
+                    context=context,
+                    response_time=response_time,
+                    rag_used=rag_used
+                )
 
             return assistant_response
 
@@ -81,6 +97,23 @@ class ChatBot:
 
     def get_model_info(self) -> str:
         return self.model_info
+
+    def get_metrics_summary(self) -> dict:
+        if self.use_rag and self.rag_manager:
+            return self.rag_manager.get_metrics_summary()
+        return {"status": "RAG not enabled"}
+
+    def export_metrics(self, filepath: str = "chatbot_metrics.json"):
+        if self.use_rag and self.rag_manager:
+            self.rag_manager.export_metrics(filepath)
+        else:
+            print("RAG not enabled, no metrics to export")
+
+    def clear_metrics(self):
+        if self.use_rag and self.rag_manager:
+            self.rag_manager.clear_metrics()
+        else:
+            print("RAG not enabled, no metrics to clear")
 
     def start_chatting(self):
         print(self.model_info)
