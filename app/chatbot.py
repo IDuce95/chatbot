@@ -32,7 +32,66 @@ class ChatBot:
                 print(f"Warning: Could not initialize RAG manager: {e}")
                 self.use_rag = False
 
+        self.agent_graph = None
+        self.use_agents = False
+        try:
+            from agents.agent_graph import AgentGraph
+            self.agent_graph = AgentGraph(self, self.config)
+            self.use_agents = True
+            self.model_info += " + Multi-Agent System"
+            print("✅ Multi-Agent System initialized successfully!")
+        except Exception as e:
+            print(f"Warning: Could not initialize Agent Graph: {e}")
+            self.use_agents = False
+
     def get_response(self, user_message: str) -> Optional[str]:
+        if self.use_agents and self.agent_graph:
+            return self.get_response_with_agents(user_message)
+        else:
+            return self.get_response_legacy(user_message)
+
+    def get_response_with_agents(self, user_message: str) -> Optional[str]:
+        try:
+            import time
+            start_time = time.time()
+
+            result = self.agent_graph.process_query(user_message, self.conversation_history)
+
+            response_text = result.get("response", "")
+            agents_used = result.get("agents_used", [])
+            intent = result.get("intent", "")
+            quality_score = result.get("quality_score", 0.0)
+
+            self.conversation_history.append({"role": "user", "content": user_message})
+            self.conversation_history.append({"role": "assistant", "content": response_text})
+
+            if len(self.conversation_history) > 20:
+                self.conversation_history = self.conversation_history[-20:]
+
+            end_time = time.time()
+            response_time = end_time - start_time
+
+            self.last_rag_used = "research" in agents_used
+
+            if self.rag_manager and hasattr(self.rag_manager, 'metrics'):
+                self.rag_manager.metrics.log_interaction(
+                    query=user_message,
+                    retrieved_docs=[],
+                    response=response_text,
+                    context=f"Agents: {', '.join(agents_used)} | Intent: {intent}",
+                    response_time=response_time,
+                    rag_used=self.last_rag_used
+                )
+
+            print(f"🤖 Agents used: {agents_used} | Intent: {intent} | Quality: {quality_score:.2f}")
+
+            return response_text
+
+        except Exception as e:
+            print(f"Agent system error: {e}")
+            return self.get_response_legacy(user_message)
+
+    def get_response_legacy(self, user_message: str) -> Optional[str]:
         try:
             import time
             start_time = time.time()

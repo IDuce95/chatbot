@@ -28,9 +28,19 @@ def initialize_chatbot():
 
 def display_metrics_sidebar(chatbot):
     st.sidebar.markdown("---")
-    st.sidebar.header("Metrics")
+    st.sidebar.header("📊 Metrics")
 
     metrics_summary = chatbot.get_metrics_summary()
+
+    if hasattr(chatbot, 'use_agents') and chatbot.use_agents:
+        st.sidebar.success("🤖 Multi-Agent System: ACTIVE")
+        st.sidebar.markdown("**Agent Types:**")
+        st.sidebar.markdown("- 🎯 Router Agent")
+        st.sidebar.markdown("- 📚 Research Agent")
+        st.sidebar.markdown("- 💻 Code Agent")
+        st.sidebar.markdown("- ✅ Reviewer Agent")
+    else:
+        st.sidebar.warning("🔄 Legacy Mode: ACTIVE")
 
     if metrics_summary.get('total_interactions', 0) > 0:
         col1, col2 = st.sidebar.columns(2)
@@ -129,7 +139,34 @@ def display_chat_interface():
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 if message["role"] == "assistant":
-                    if message.get("rag_used", False):
+                    agents_used = message.get("agents_used", [])
+                    intent = message.get("intent", "")
+                    quality_score = message.get("quality_score", 0.0)
+                    agent_steps = message.get("agent_steps", [])
+
+                    if agents_used:
+                        agent_icons = {
+                            "router": "🎯", "research": "📚", "code": "💻",
+                            "reviewer": "✅", "direct": "🔄"
+                        }
+                        agent_display = " → ".join([f"{agent_icons.get(agent, '🔧')} {agent.title()}" for agent in agents_used])
+
+                        col1, col2, col3 = st.columns([3, 1, 1])
+                        with col1:
+                            st.caption(f"🤖 Agent Path: {agent_display}")
+                        with col2:
+                            if intent:
+                                st.caption(f"🎯 Intent: {intent}")
+                        with col3:
+                            if quality_score > 0:
+                                quality_color = "🟢" if quality_score >= 4 else "🟡" if quality_score >= 3 else "🔴"
+                                st.caption(f"{quality_color} Quality: {quality_score:.1f}")
+
+                        if agent_steps:
+                            with st.expander("🔍 View Agent Steps", expanded=False):
+                                for step in agent_steps:
+                                    st.markdown(f"- {step}")
+                    elif message.get("rag_used", False):
                         st.caption("🧠 Enhanced with knowledge base")
 
                     gen_metrics = message.get("generation_metrics", {})
@@ -152,11 +189,104 @@ def display_chat_interface():
 
         if st.session_state.get('processing_response', False):
             with st.chat_message("assistant"):
-                with st.spinner("Thinking..."):
+                if hasattr(st.session_state.chatbot, 'use_agents') and st.session_state.chatbot.use_agents:
+                    status_placeholder = st.empty()
+                    steps_placeholder = st.empty()
+                    response_placeholder = st.empty()
+
+                    _ = []
+
                     try:
-                        response = st.session_state.chatbot.get_response(st.session_state.current_prompt)
+                        status_placeholder.info("🚀 Starting Multi-Agent Processing...")
+
+                        class StreamlitAgentGraph:
+                            def __init__(self, agent_graph):
+                                self.agent_graph = agent_graph
+                                self.steps = []
+
+                            def process_query_with_steps(self, query):
+                                self.steps.append("🎯 Router Agent: Analyzing query intent...")
+                                steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+
+                                conversation_history = st.session_state.chatbot.get_history()
+                                result = self.agent_graph.process_query(query, conversation_history)
+
+                                agents_used = result.get("agents_used", [])
+                                intent = result.get("intent", "")
+
+                                self.steps = []
+                                agent_icons = {"router": "🎯", "research": "📚", "code": "💻", "reviewer": "✅", "direct": "🔄"}
+
+                                for i, agent in enumerate(agents_used):
+                                    icon = agent_icons.get(agent, "🔧")
+                                    if agent == "router":
+                                        self.steps.append(f"{icon} Router Agent: Intent classified as {intent}")
+                                    elif agent == "research":
+                                        self.steps.append(f"{icon} Research Agent: Searching documentation...")
+                                        self.steps.append("📖 Research Agent: Found relevant information")
+                                    elif agent == "code":
+                                        self.steps.append(f"{icon} Code Agent: Generating code solution...")
+                                        self.steps.append("✨ Code Agent: Code generated and formatted")
+                                    elif agent == "reviewer":
+                                        self.steps.append(f"{icon} Reviewer Agent: Evaluating response quality...")
+                                        quality = result.get("quality_score", 0)
+                                        quality_emoji = "🟢" if quality >= 4 else "🟡" if quality >= 3 else "🔴"
+                                        self.steps.append(f"{quality_emoji} Reviewer Agent: Quality score: {quality:.1f}")
+                                    elif agent == "direct":
+                                        self.steps.append(f"{icon} Direct Response: Generating answer...")
+
+                                    steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+
+                                self.steps.append("✅ Processing complete!")
+                                steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+
+                                return result
+
+                        wrapper = StreamlitAgentGraph(st.session_state.chatbot.agent_graph)
+                        result = wrapper.process_query_with_steps(st.session_state.current_prompt)
+
+                        response = result.get("response", "")
+                        agents_used = result.get("agents_used", [])
+                        intent = result.get("intent", "")
+                        quality_score = result.get("quality_score", 0.0)
+
+                        status_placeholder.empty()
 
                         if response:
+                            response_placeholder.markdown(response)
+
+                            message_data = {
+                                "role": "assistant",
+                                "content": response,
+                                "rag_used": "research" in agents_used,
+                                "agents_used": agents_used,
+                                "intent": intent,
+                                "quality_score": quality_score,
+                                "agent_steps": wrapper.steps
+                            }
+                        else:
+                            error_msg = "Failed to get response. Please try again!"
+                            response_placeholder.error(error_msg)
+                            message_data = {
+                                "role": "assistant",
+                                "content": error_msg,
+                                "rag_used": False
+                            }
+
+                    except Exception as e:
+                        status_placeholder.empty()
+                        steps_placeholder.empty()
+                        error_msg = f"Error occurred: {e}"
+                        response_placeholder.error(error_msg)
+                        message_data = {
+                            "role": "assistant",
+                            "content": error_msg,
+                            "rag_used": False
+                        }
+                else:
+                    with st.spinner("Thinking..."):
+                        try:
+                            response = st.session_state.chatbot.get_response(st.session_state.current_prompt)
                             rag_used = hasattr(st.session_state.chatbot, 'last_rag_used') and st.session_state.chatbot.last_rag_used
 
                             gen_metrics = {}
@@ -165,33 +295,35 @@ def display_chat_interface():
                                 if interactions:
                                     gen_metrics = interactions[-1].get('generation_metrics', {})
 
-                            st.session_state.messages.append({
-                                "role": "assistant",
-                                "content": response,
-                                "rag_used": rag_used,
-                                "generation_metrics": gen_metrics
-                            })
-                        else:
-                            error_msg = "Failed to get response. Please try again!"
-                            st.session_state.messages.append({
+                            if response:
+                                message_data = {
+                                    "role": "assistant",
+                                    "content": response,
+                                    "rag_used": rag_used,
+                                    "generation_metrics": gen_metrics
+                                }
+                            else:
+                                error_msg = "Failed to get response. Please try again!"
+                                message_data = {
+                                    "role": "assistant",
+                                    "content": error_msg,
+                                    "rag_used": False
+                                }
+
+                        except Exception as e:
+                            error_msg = f"Error occurred: {e}"
+                            message_data = {
                                 "role": "assistant",
                                 "content": error_msg,
                                 "rag_used": False
-                            })
+                            }
 
-                    except Exception as e:
-                        error_msg = f"Error occurred: {e}"
-                        st.session_state.messages.append({
-                            "role": "assistant",
-                            "content": error_msg,
-                            "rag_used": False
-                        })
+                st.session_state.messages.append(message_data)
+                st.session_state.processing_response = False
+                if 'current_prompt' in st.session_state:
+                    del st.session_state.current_prompt
 
-                    st.session_state.processing_response = False
-                    if 'current_prompt' in st.session_state:
-                        del st.session_state.current_prompt
-
-                    st.rerun()
+                st.rerun()
 
     if prompt := st.chat_input("Ask me anything about programming in python..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
