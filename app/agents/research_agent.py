@@ -24,7 +24,16 @@ class ResearchAgent(BaseAgent):
         user_query = state["user_query"]
 
         try:
-            refined_query = self._refine_query(user_query)
+            improvement_feedback = state.get("metadata", {}).get("improvement_feedback", "")
+            quality_issues = state.get("metadata", {}).get("quality_issues", [])
+            iteration_count = state.get("iteration_count", 0)
+
+            if iteration_count > 0 and improvement_feedback:
+                print(f"🔄 Research retry with feedback: {improvement_feedback}")
+                enhanced_query = self._enhance_query_with_feedback(user_query, improvement_feedback, quality_issues)
+                refined_query = self._refine_query(enhanced_query)
+            else:
+                refined_query = self._refine_query(user_query)
 
             if self.rag_manager:
                 context_data = self.rag_manager.get_context_with_relevance(refined_query)
@@ -51,6 +60,27 @@ class ResearchAgent(BaseAgent):
             state["metadata"]["research_error"] = str(e)
 
         return self._update_state(state)
+
+    def _enhance_query_with_feedback(self, original_query: str, feedback: str, issues: list) -> str:
+        enhancements = []
+
+        if "completeness" in feedback.lower() or any("completeness" in issue for issue in issues):
+            enhancements.append("comprehensive detailed")
+        if "accuracy" in feedback.lower() or any("accuracy" in issue for issue in issues):
+            enhancements.append("accurate precise")
+        if "clarity" in feedback.lower() or any("clarity" in issue for issue in issues):
+            enhancements.append("clear explanatory")
+        if "practical" in feedback.lower() or any("practical" in issue for issue in issues):
+            enhancements.append("practical examples")
+        if "code" in feedback.lower() or any("code" in issue for issue in issues):
+            enhancements.append("code implementation")
+
+        if enhancements:
+            enhanced = f"{original_query} - need {' '.join(enhancements)} information"
+            print(f"🔧 Enhanced query: {enhanced}")
+            return enhanced
+        else:
+            return f"{original_query} - more detailed information needed"
 
     def _refine_query(self, query: str) -> str:
         refinement_prompt = self.config["agents"]["research"]["query_refinement"].format(query=query)

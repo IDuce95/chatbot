@@ -33,16 +33,27 @@ class ReviewerAgent(BaseAgent):
 
             verdict_data = self._parse_review_result(review_result)
 
+            needs_improvement = self._needs_improvement(verdict_data, state)
+
+            if needs_improvement:
+                state["metadata"]["improvement_feedback"] = verdict_data.reason
+                state["metadata"]["quality_issues"] = self._identify_quality_issues(verdict_data)
+
             final_response = self._create_final_response(
                 state, research_results, generated_code
             )
 
             state["quality_score"] = verdict_data.quality.overall
             state["final_response"] = final_response
-            state["feedback_loop"] = False
+            state["feedback_loop"] = needs_improvement
             state["metadata"]["review_verdict"] = verdict_data.verdict
             state["metadata"]["review_feedback"] = verdict_data.reason
             state["metadata"]["quality_breakdown"] = verdict_data.quality.dict()
+
+            if needs_improvement:
+                print(f"⚠️ Quality too low ({verdict_data.quality.overall:.1f}), requesting improvement")
+            else:
+                print(f"✅ Quality acceptable ({verdict_data.quality.overall:.1f}), approving response")
 
         except Exception as e:
             print(f"Review error: {e}")
@@ -134,6 +145,46 @@ class ReviewerAgent(BaseAgent):
                 context_parts.append(f"[{source}]: {clean_content}")
 
         return '\n\n'.join(context_parts)
+
+    def _identify_quality_issues(self, verdict_data: ReviewVerdict) -> list:
+        issues = []
+
+        if verdict_data.quality.completeness < 3:
+            issues.append("Response lacks completeness - needs more comprehensive information")
+        if verdict_data.quality.accuracy < 3:
+            issues.append("Accuracy concerns - verify technical correctness")
+        if verdict_data.quality.clarity < 3:
+            issues.append("Clarity issues - explanation needs to be clearer")
+        if verdict_data.quality.practicality < 3:
+            issues.append("Practicality problems - needs more applicable examples")
+        if verdict_data.quality.code_quality < 3:
+            issues.append("Code quality issues - improve implementation")
+
+        return issues
+
+    def _needs_improvement(self, verdict_data: ReviewVerdict, state: AgentState) -> bool:
+        current_iteration = state.get("iteration_count", 0)
+
+        print(f"🔍 Reviewing quality: Overall={verdict_data.quality.overall:.1f}, Verdict={verdict_data.verdict}, Iteration={current_iteration}")
+
+        if current_iteration >= 1:
+            print("🛑 Max iterations reached, not improving")
+            return False
+
+        if verdict_data.quality.overall < 1.0:
+            print(f"⚠️ Overall quality extremely low ({verdict_data.quality.overall:.1f} < 1.0)")
+            return True
+
+        critical_aspects = [
+            verdict_data.quality.completeness,
+            verdict_data.quality.accuracy,
+            verdict_data.quality.clarity
+        ]
+        if any(score < 1.0 for score in critical_aspects):
+            print(f"⚠️ Critical aspect extremely low: {critical_aspects}")
+            return True
+
+        return False
 
     def _create_basic_response(self, query: str, research_results: list, generated_code: str) -> str:
         response_parts = []

@@ -45,22 +45,29 @@ class ChatBot:
             self.use_agents = False
 
     def get_response(self, user_message: str) -> Optional[str]:
-        if self.use_agents and self.agent_graph:
-            return self.get_response_with_agents(user_message)
-        else:
-            return self.get_response_legacy(user_message)
+        try:
+            if self.use_agents and self.agent_graph:
+                return self.get_response_with_agents(user_message)
+            else:
+                return self.get_response_legacy(user_message)
+        except Exception as e:
+            print(f"Error in get_response: {e}")
+            raise
 
     def get_response_with_agents(self, user_message: str) -> Optional[str]:
+        print(f"🔧 DEBUG: get_response_with_agents STARTED for: {user_message[:30]}...")
         try:
             import time
             start_time = time.time()
 
             result = self.agent_graph.process_query(user_message, self.conversation_history)
+            print("🔧 DEBUG: agent_graph.process_query COMPLETED")
 
             response_text = result.get("response", "")
             agents_used = result.get("agents_used", [])
             intent = result.get("intent", "")
             quality_score = result.get("quality_score", 0.0)
+            research_results = result.get("research_results", [])
 
             self.conversation_history.append({"role": "user", "content": user_message})
             self.conversation_history.append({"role": "assistant", "content": response_text})
@@ -74,14 +81,17 @@ class ChatBot:
             self.last_rag_used = "research" in agents_used
 
             if self.rag_manager and hasattr(self.rag_manager, 'metrics'):
-                self.rag_manager.metrics.log_interaction(
-                    query=user_message,
-                    retrieved_docs=[],
-                    response=response_text,
-                    context=f"Agents: {', '.join(agents_used)} | Intent: {intent}",
-                    response_time=response_time,
-                    rag_used=self.last_rag_used
-                )
+                try:
+                    self.rag_manager.metrics.log_interaction(
+                        query=user_message,
+                        retrieved_docs=research_results,
+                        response=response_text,
+                        context=f"Agents: {', '.join(agents_used)} | Intent: {intent}",
+                        response_time=response_time,
+                        rag_used=self.last_rag_used
+                    )
+                except Exception as e:
+                    print(f"Warning: Failed to log metrics: {e}")
 
             print(f"🤖 Agents used: {agents_used} | Intent: {intent} | Quality: {quality_score:.2f}")
 

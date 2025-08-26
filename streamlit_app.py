@@ -30,7 +30,11 @@ def display_metrics_sidebar(chatbot):
     st.sidebar.markdown("---")
     st.sidebar.header("📊 Metrics")
 
-    metrics_summary = chatbot.get_metrics_summary()
+    try:
+        metrics_summary = chatbot.get_metrics_summary()
+    except Exception as e:
+        st.sidebar.error(f"Error getting metrics: {e}")
+        metrics_summary = {'total_interactions': 0}
 
     if hasattr(chatbot, 'use_agents') and chatbot.use_agents:
         st.sidebar.success("🤖 Multi-Agent System: ACTIVE")

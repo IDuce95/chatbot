@@ -136,13 +136,15 @@ class AgentGraph:
     def _review_decision(self, state: AgentState) -> str:
         current_iteration = state.get("iteration_count", 0)
 
-        if self.reviewer_agent.should_improve(state) and current_iteration < 1:
+        if self.reviewer_agent.should_improve(state):
             state["iteration_count"] = current_iteration + 1
             print(f"🔄 Feedback loop - iteration {state['iteration_count']}")
             return "improve"
         else:
             if current_iteration >= 1:
                 print(f"🛑 Max iterations reached ({current_iteration}), ending feedback loop")
+            else:
+                print("✅ Quality acceptable, ending process")
             return "end"
 
     def initialize_state(self, user_query: str, conversation_history: List[dict] = None) -> AgentState:
@@ -162,27 +164,78 @@ class AgentGraph:
         }
 
     def process_query(self, user_query: str, conversation_history: List[dict] = None) -> dict:
+        import time
         print(f"\n🚀 Starting agent processing for: {user_query}")
 
+        start_time = time.time()
         initial_state = self.initialize_state(user_query, conversation_history)
 
         try:
             final_state = self.graph.invoke(initial_state)
+            end_time = time.time()
+            response_time = end_time - start_time
 
             print(f"✅ Processing complete. Agents visited: {final_state['agents_visited']}")
 
+            response = final_state["final_response"]
+
+            if hasattr(self.chatbot, 'rag_manager') and self.chatbot.rag_manager:
+                rag_used = "research" in final_state['agents_visited']
+
+                retrieved_docs = []
+                if rag_used and final_state.get("research_results"):
+                    retrieved_docs = final_state["research_results"]
+
+                context = ""
+                if retrieved_docs:
+                    context = "\n".join([doc.get('content', '') for doc in retrieved_docs if isinstance(doc, dict)])
+
+                print(f"🔧 AGENT_GRAPH: Logging metrics - rag_used={rag_used}, docs_count={len(retrieved_docs)}")
+
+                try:
+                    self.chatbot.rag_manager.metrics.log_interaction(
+                        query=user_query,
+                        retrieved_docs=retrieved_docs,
+                        response=response,
+                        context=context,
+                        response_time=response_time,
+                        rag_used=rag_used
+                    )
+                    print("🔧 AGENT_GRAPH: Metrics logged successfully")
+                except Exception as e:
+                    print(f"🔧 AGENT_GRAPH: Error logging metrics: {e}")
+
             return {
-                "response": final_state["final_response"],
+                "response": response,
                 "quality_score": final_state["quality_score"],
                 "agents_used": final_state["agents_visited"],
                 "intent": final_state["intent_classification"],
+                "research_results": final_state.get("research_results", []),
                 "metadata": final_state["metadata"]
             }
 
         except Exception as e:
+            end_time = time.time()
+            response_time = end_time - start_time
             print(f"❌ Graph execution error: {e}")
+
+            error_response = f"I'm sorry, I encountered an error processing your request: {e}"
+
+            if hasattr(self.chatbot, 'rag_manager') and self.chatbot.rag_manager:
+                try:
+                    self.chatbot.rag_manager.metrics.log_interaction(
+                        query=user_query,
+                        retrieved_docs=[],
+                        response=error_response,
+                        context="",
+                        response_time=response_time,
+                        rag_used=False
+                    )
+                except Exception as log_error:
+                    print(f"🔧 AGENT_GRAPH: Error logging error metrics: {log_error}")
+
             return {
-                "response": f"I'm sorry, I encountered an error processing your request: {e}",
+                "response": error_response,
                 "quality_score": 0.0,
                 "agents_used": ["error"],
                 "intent": "error",
