@@ -3,10 +3,10 @@ import sys
 import requests
 import plotly.graph_objects as go
 import streamlit as st
+import datetime
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
-from chatbot import ChatBot
 from config_utils import get_api_config, get_quality_config
 
 
@@ -43,60 +43,42 @@ def call_api_chat(message: str):
         return None
 
 
-def call_api_agents_process(query: str, conversation_history: list = None):
-    try:
-        payload = {
-            "query": query,
-            "conversation_history": conversation_history or []
-        }
-
-        response = requests.post(
-            f"{API_BASE_URL}/agents/process",
-            json=payload,
-            headers={"Content-Type": "application/json"},
-            timeout=30
-        )
-
-        if response.status_code == 200:
-            return response.json()
-        else:
-            st.error(f"API Error: {response.status_code} - {response.text}")
-            return None
-
-    except requests.exceptions.RequestException as e:
-        st.error(f"Failed to connect to API: {e}")
-        return None
+def initialize_session():
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
 
 
-def initialize_chatbot():
-    if 'chatbot' not in st.session_state:
-        try:
-            st.session_state.chatbot = ChatBot(use_rag=True)
-            st.session_state.messages = []
-        except Exception as e:
-            st.error(f"Failed to initialize ChatBot: {e}")
-            st.stop()
-
-
-def display_metrics_sidebar(chatbot):
+def display_metrics_sidebar():
     st.sidebar.markdown("---")
     st.sidebar.header("📊 Metrics")
 
     try:
-        metrics_summary = chatbot.get_metrics_summary()
+        response = requests.get(f"{API_BASE_URL}/metrics")
+        if response.status_code == 200:
+            metrics_data = response.json()
+            metrics_summary = metrics_data.get("metrics", {})
+        else:
+            st.sidebar.error(f"Failed to fetch metrics: {response.status_code}")
+            metrics_summary = {'total_interactions': 0}
     except Exception as e:
         st.sidebar.error(f"Error getting metrics: {e}")
         metrics_summary = {'total_interactions': 0}
 
-    if hasattr(chatbot, 'use_agents') and chatbot.use_agents:
-        st.sidebar.success("🤖 Multi-Agent System: ACTIVE")
-        st.sidebar.markdown("**Agent Types:**")
-        st.sidebar.markdown("- 🎯 Router Agent")
-        st.sidebar.markdown("- 📚 Research Agent")
-        st.sidebar.markdown("- 💻 Code Agent")
-        st.sidebar.markdown("- ✅ Reviewer Agent")
-    else:
-        st.sidebar.warning("🔄 Legacy Mode: ACTIVE")
+    try:
+        response = requests.get(f"{API_BASE_URL}/agents/info")
+        if response.status_code == 200:
+            agent_info = response.json()
+            if agent_info.get("agent_system_active", False):
+                st.sidebar.success("🤖 Multi-Agent System: ACTIVE")
+                st.sidebar.markdown("**Agent Types:**")
+                for agent in agent_info.get("available_agents", []):
+                    st.sidebar.markdown(f"- {agent['icon']} {agent['name']}")
+            else:
+                st.sidebar.warning("� Agent System: INACTIVE")
+        else:
+            st.sidebar.warning("🔄 Agent System: UNKNOWN")
+    except Exception as e:
+        st.sidebar.warning(f"🔄 Agent System: ERROR - {e}")
 
     if metrics_summary.get('total_interactions', 0) > 0:
         col1, col2 = st.sidebar.columns(2)
@@ -115,25 +97,41 @@ def display_metrics_sidebar(chatbot):
 
         if st.sidebar.button("Export metrics"):
             try:
-                filename = "streamlit_metrics_export.json"
-                chatbot.export_metrics(filename)
-                st.sidebar.success(f"Metrics exported to {filename}")
-                st.session_state.exported_metrics = True
+                response = requests.post(f"{API_BASE_URL}/metrics/export")
+                if response.status_code == 200:
+                    result = response.json()
+                    st.sidebar.success(f"Metrics exported: {result.get('message', 'Success')}")
+                    st.session_state.exported_metrics = True
+                else:
+                    st.sidebar.error(f"Export failed: {response.status_code}")
             except Exception as e:
                 st.sidebar.error(f"Export failed: {e}")
 
         if st.session_state.get('exported_metrics', False):
             if st.sidebar.button("🗑️ Clear Exported Metrics"):
-                chatbot.clear_metrics()
-                st.session_state.exported_metrics = False
+                try:
+                    response = requests.delete(f"{API_BASE_URL}/metrics")
+                    if response.status_code == 200:
+                        st.session_state.exported_metrics = False
+                        st.sidebar.success("Metrics cleared")
+                    else:
+                        st.sidebar.error(f"Clear failed: {response.status_code}")
+                except Exception as e:
+                    st.sidebar.error(f"Clear failed: {e}")
                 st.sidebar.success("Exported metrics cleared!")
                 st.rerun()
 
         if st.sidebar.button("Clear metrics"):
-            chatbot.clear_metrics()
-            st.session_state.exported_metrics = False
-            st.sidebar.success("All metrics cleared!")
-            st.rerun()
+            try:
+                response = requests.delete(f"{API_BASE_URL}/metrics")
+                if response.status_code == 200:
+                    st.session_state.exported_metrics = False
+                    st.sidebar.success("All metrics cleared!")
+                    st.rerun()
+                else:
+                    st.sidebar.error(f"Clear failed: {response.status_code}")
+            except Exception as e:
+                st.sidebar.error(f"Clear failed: {e}")
     else:
         st.sidebar.info("No metrics available yet. Start chatting to generate metrics!")
 
@@ -141,24 +139,46 @@ def display_metrics_sidebar(chatbot):
 def main():
     st.title("🤖 CodeBot Assistant")
 
-    initialize_chatbot()
+    initialize_session()
 
     with st.sidebar:
         st.header("Settings")
 
-        st.info(st.session_state.chatbot.get_model_info())
+        try:
+            response = requests.get(f"{API_BASE_URL}/")
+            if response.status_code == 200:
+                data = response.json()
+                st.info(data.get("model_info", "CodeBot API connected"))
+            else:
+                st.warning("API connection issue")
+        except Exception as e:
+            st.error(f"Failed to connect to API: {e}")
 
-        if st.session_state.chatbot.use_rag:
-            st.success("RAG knowledge base: Enabled")
-        else:
-            st.warning("RAG knowledge base: Disabled")
+        try:
+            response = requests.get(f"{API_BASE_URL}/health")
+            if response.status_code == 200:
+                health_data = response.json()
+                if health_data.get("rag_enabled", False):
+                    st.success("RAG knowledge base: Enabled")
+                else:
+                    st.warning("RAG knowledge base: Disabled")
+            else:
+                st.warning("RAG knowledge base: Unknown")
+        except Exception:
+            st.warning("RAG knowledge base: Error")
 
         if st.button("Clear chat history", type="secondary"):
-            st.session_state.chatbot.clear_history()
-            st.session_state.messages = []
-            st.rerun()
+            try:
+                response = requests.delete(f"{API_BASE_URL}/history")
+                if response.status_code == 200:
+                    st.session_state.messages = []
+                    st.rerun()
+                else:
+                    st.error("Failed to clear conversation")
+            except Exception as e:
+                st.error(f"Error clearing conversation: {e}")
 
-        display_metrics_sidebar(st.session_state.chatbot)
+        display_metrics_sidebar()
 
     if st.session_state.get('show_detailed_metrics', False):
         chat_col, separator_col, metrics_col = st.columns([2, 0.1, 1])
@@ -182,7 +202,7 @@ def main():
 
         with metrics_col:
             st.subheader("Live metrics")
-            display_detailed_metrics_compact(st.session_state.chatbot)
+            display_detailed_metrics_compact_api()
     else:
         display_chat_interface()
 
@@ -247,7 +267,13 @@ def display_chat_interface():
 
         if st.session_state.get('processing_response', False):
             with st.chat_message("assistant"):
-                if hasattr(st.session_state.chatbot, 'use_agents') and st.session_state.chatbot.use_agents:
+                try:
+                    response = requests.get(f"{API_BASE_URL}/agents/info")
+                    use_agents = response.status_code == 200 and response.json().get("agent_system_active", False)
+                except Exception:
+                    use_agents = False
+
+                if use_agents:
                     status_placeholder = st.empty()
                     steps_placeholder = st.empty()
                     response_placeholder = st.empty()
@@ -265,10 +291,7 @@ def display_chat_interface():
                                 self.steps.append("🎯 Router Agent: Analyzing query intent...")
                                 steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
 
-                                conversation_history = st.session_state.chatbot.get_history()
-
-                                # Call API instead of direct agent processing
-                                api_result = call_api_agents_process(query, conversation_history)
+                                api_result = call_api_chat(query)
 
                                 if not api_result:
                                     return {
@@ -278,7 +301,6 @@ def display_chat_interface():
                                         "quality_score": 0.0
                                     }
 
-                                # Convert API response to expected format
                                 result = {
                                     "response": api_result.get("response", ""),
                                     "agents_used": api_result.get("agents_used", []),
@@ -363,21 +385,19 @@ def display_chat_interface():
                 else:
                     with st.spinner("Thinking..."):
                         try:
-                            response = st.session_state.chatbot.get_response(st.session_state.current_prompt)
-                            rag_used = hasattr(st.session_state.chatbot, 'last_rag_used') and st.session_state.chatbot.last_rag_used
+                            api_response = call_api_chat(st.session_state.current_prompt)
 
-                            gen_metrics = {}
-                            if hasattr(st.session_state.chatbot, 'rag_manager') and st.session_state.chatbot.rag_manager:
-                                interactions = st.session_state.chatbot.rag_manager.metrics.session_metrics
-                                if interactions:
-                                    gen_metrics = interactions[-1].get('generation_metrics', {})
+                            if api_response and api_response.get("success"):
+                                response = api_response.get("response", "")
+                                rag_used = api_response.get("rag_used", False)
 
-                            if response:
                                 message_data = {
                                     "role": "assistant",
                                     "content": response,
                                     "rag_used": rag_used,
-                                    "generation_metrics": gen_metrics
+                                    "agents_used": api_response.get("agents_used", []),
+                                    "quality_score": api_response.get("quality_score", 0),
+                                    "intent": api_response.get("intent", "")
                                 }
                             else:
                                 error_msg = "Failed to get response. Please try again!"
@@ -410,66 +430,96 @@ def display_chat_interface():
         st.rerun()
 
 
-def display_detailed_metrics_compact(chatbot):
-    if hasattr(chatbot, 'rag_manager') and chatbot.rag_manager:
-        interactions = chatbot.rag_manager.metrics.session_metrics
+def display_detailed_metrics_compact_api():
+    try:
+        response = requests.get(f"{API_BASE_URL}/metrics/detailed")
+        if response.status_code == 200:
+            data = response.json()
+            metrics = data.get("detailed_metrics", {})
 
-        if not interactions:
-            st.info("No interactions recorded yet.")
-            return
+            total_interactions = metrics.get("total_interactions", 0)
 
-        total_interactions = len(interactions)
-        rag_interactions = sum(1 for i in interactions if i.get('rag_used', False))
-        avg_response_time = sum(i.get('response_time', 0) for i in interactions) / len(interactions)
+            if total_interactions == 0:
+                st.info("No interactions recorded yet.")
+                return
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Interactions", total_interactions)
-            st.metric("RAG usage", f"{rag_interactions}/{total_interactions}")
-        with col2:
-            st.metric("Avg time", f"{avg_response_time:.1f}s")
-            if interactions:
-                total_time = interactions[-1]['timestamp'] - interactions[0]['timestamp']
-                st.metric("Session", f"{total_time:.0f}s")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Interactions", total_interactions)
+                st.metric("RAG usage", f"{metrics.get('rag_usage_rate', 0):.1%}")
+            with col2:
+                st.metric("Avg time", f"{metrics.get('avg_response_time', 0):.1f}s")
+                st.metric("Quality", f"{metrics.get('avg_quality_score', 0):.1f}/5")
 
-        if interactions:
-            latest = interactions[-1]
-            gen_metrics = latest.get('generation_metrics', {})
+            session_start = metrics.get("session_start_time")
+            if session_start:
+                start_time = datetime.datetime.fromtimestamp(session_start)
+                current_time = datetime.datetime.now()
+                session_duration = (current_time - start_time).total_seconds()
+                st.metric("Session duration", f"{session_duration:.0f}s")
+            else:
+                st.metric("Session duration", f"{metrics.get('total_session_time', 0):.1f}s")
 
-            st.markdown("**Latest response:**")
-            if 'response_word_count' in gen_metrics:
-                st.metric("Words", gen_metrics['response_word_count'])
-            if 'perplexity_approx' in gen_metrics:
-                st.metric("Perplexity", f"{gen_metrics['perplexity_approx']:.1f}")
-            if 'unique_word_ratio' in gen_metrics:
-                st.metric("Uniqueness", f"{gen_metrics['unique_word_ratio']:.2f}")
+            latest_interaction = metrics.get("latest_interaction", {})
+            if latest_interaction:
+                st.markdown("**Latest response:**")
+                col3, col4 = st.columns(2)
+                with col3:
+                    if 'response_word_count' in latest_interaction:
+                        st.metric("Words", latest_interaction['response_word_count'])
+                    if 'agents_used' in latest_interaction and latest_interaction['agents_used']:
+                        agent_count = len([a for a in latest_interaction['agents_used'] if a.strip()])
+                        st.metric("Agents used", agent_count)
+                with col4:
+                    if 'perplexity_approx' in latest_interaction:
+                        st.metric("Perplexity", f"{latest_interaction['perplexity_approx']:.1f}")
+                    if 'quality_score' in latest_interaction:
+                        st.metric("Quality", f"{latest_interaction['quality_score']:.1f}/5")
 
-            retrieval_metrics = latest.get('retrieval_metrics', {})
-            auto_metrics = {k: v for k, v in retrieval_metrics.items() if 'auto_' in k}
-            if auto_metrics:
-                st.markdown("**RAG quality:**")
-                if 'auto_precision@1' in auto_metrics:
-                    st.metric("Precision@1", f"{auto_metrics['auto_precision@1']:.2f}")
-                if 'auto_relevance_rate' in auto_metrics:
-                    st.metric("Relevance rate", f"{auto_metrics['auto_relevance_rate']:.2f}")
+            response_times = metrics.get("response_time_history", [])
+            if len(response_times) > 1:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    y=response_times[-10:],
+                    mode='lines+markers',
+                    name='Response Time',
+                    line=dict(color='#1f77b4', width=2),
+                    marker=dict(size=6)
+                ))
+                fig.update_layout(
+                    title="Response time trend (last 10)",
+                    height=200,
+                    margin=dict(l=0, r=0, t=30, b=20),
+                    showlegend=False,
+                    xaxis_title="Interaction",
+                    yaxis_title="Time (s)"
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
-        if len(interactions) > 1:
-            response_times = [i.get('response_time', 0) for i in interactions[-10:]]
+            quality_scores = metrics.get("quality_score_history", [])
+            if len(quality_scores) > 1:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    y=quality_scores[-10:],
+                    mode='lines+markers',
+                    name='Quality Score',
+                    line=dict(color='#2ca02c', width=2),
+                    marker=dict(size=6)
+                ))
+                fig.update_layout(
+                    title="Quality trend (last 10)",
+                    height=200,
+                    margin=dict(l=0, r=0, t=30, b=20),
+                    showlegend=False,
+                    xaxis_title="Interaction",
+                    yaxis_title="Quality (1-5)"
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(
-                y=response_times,
-                mode='lines+markers',
-                name='Response Time',
-                line=dict(color='#1f77b4', width=2)
-            ))
-            fig.update_layout(
-                title="Response time trend",
-                height=200,
-                margin=dict(l=0, r=0, t=30, b=0),
-                showlegend=False
-            )
-            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.error(f"Failed to fetch detailed metrics: {response.status_code}")
+    except Exception as e:
+        st.error(f"Error loading detailed metrics: {e}")
 
 
 if __name__ == "__main__":

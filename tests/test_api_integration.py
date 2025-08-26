@@ -1,108 +1,110 @@
 import os
 import sys
 import time
-
+import pytest
 import requests
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
 from config_utils import get_api_config
 
 
-api_config = get_api_config()
-API_BASE_URL = api_config["base_url"]
+class TestAPIIntegration:
 
+    @pytest.fixture
+    def api_config(self):
+        return get_api_config()
 
-def test_api_endpoints():
-    print("🚀 Testing CodeBot API Integration")
-    print("=" * 50)
-    print("\n1. Testing Health Endpoint...")
+    @pytest.fixture
+    def api_base_url(self, api_config):
+        return api_config["base_url"]
 
-    try:
-        response = requests.get(f"{API_BASE_URL}/health")
-        if response.status_code == 200:
-            health_data = response.json()
-            print("✅ Health check passed")
-            print(f"   Status: {health_data['status']}")
-            print(f"   Agent System: {health_data['agent_system']}")
-            print(f"   RAG Enabled: {health_data['rag_enabled']}")
-        else:
-            print(f"❌ Health check failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Health check error: {e}")
+    def test_health_endpoint(self, api_base_url):
+        response = requests.get(f"{api_base_url}/health")
+        assert response.status_code == 200
 
-    print("\n2. Testing Agents Info Endpoint...")
+        health_data = response.json()
+        assert "status" in health_data
+        assert "agent_system" in health_data
+        assert "rag_enabled" in health_data
+        assert health_data["status"] == "healthy"
 
-    try:
-        response = requests.get(f"{API_BASE_URL}/agents/info")
-        if response.status_code == 200:
-            agents_data = response.json()
-            print("✅ Agents info retrieved")
-            print(f"   Agent System Active: {agents_data['agent_system_active']}")
-            print(f"   Total Agents: {agents_data['total_agents']}")
-            print("   Available Agents:")
-            for agent in agents_data['available_agents']:
-                print(f"     {agent['icon']} {agent['name']}: {agent['purpose']}")
-        else:
-            print(f"❌ Agents info failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Agents info error: {e}")
+    def test_agents_info_endpoint(self, api_base_url):
+        response = requests.get(f"{api_base_url}/agents/info")
+        assert response.status_code == 200
 
-    print("\n3. Testing Chat Endpoint...")
+        agents_data = response.json()
+        assert "agent_system_active" in agents_data
+        assert "total_agents" in agents_data
+        assert "available_agents" in agents_data
+        assert isinstance(agents_data["available_agents"], list)
+        assert agents_data["total_agents"] > 0
 
-    try:
+    def test_chat_endpoint(self, api_base_url):
         test_message = "How to create a Python function?"
-        print(f"   Sending: '{test_message}'")
 
         start_time = time.time()
         response = requests.post(
-            f"{API_BASE_URL}/chat",
+            f"{api_base_url}/chat",
             json={"message": test_message},
             headers={"Content-Type": "application/json"},
             timeout=30
         )
+        elapsed_time = time.time() - start_time
 
-        if response.status_code == 200:
-            chat_data = response.json()
-            elapsed_time = time.time() - start_time
+        assert response.status_code == 200
+        assert elapsed_time < 30
 
-            print(f"✅ Chat response received ({elapsed_time:.2f}s)")
-            print(f"   Success: {chat_data['success']}")
-            print(f"   RAG Used: {chat_data['rag_used']}")
-            print(f"   Agents Used: {chat_data['agents_used']}")
-            print(f"   Intent: {chat_data['intent']}")
-            print(f"   Quality Score: {chat_data['quality_score']}")
-            print(f"   Response Length: {len(chat_data['response'])} chars")
-            print(f"   Response Preview: {chat_data['response'][:100]}...")
-        else:
-            print(f"❌ Chat failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Chat error: {e}")
+        chat_data = response.json()
+        assert chat_data["success"] is True
+        assert "rag_used" in chat_data
+        assert "agents_used" in chat_data
+        assert "intent" in chat_data
+        assert "quality_score" in chat_data
+        assert "response" in chat_data
+        assert len(chat_data["response"]) > 0
 
-    print("\n4. Testing Metrics Endpoint...")
+    def test_metrics_endpoint(self, api_base_url):
+        response = requests.get(f"{api_base_url}/metrics")
+        assert response.status_code == 200
 
-    try:
-        response = requests.get(f"{API_BASE_URL}/metrics")
-        if response.status_code == 200:
-            metrics_data = response.json()
-            metrics = metrics_data['metrics']
-            print("✅ Metrics retrieved")
-            print(f"   Total Interactions: {metrics.get('total_interactions', 0)}")
-            print(f"   RAG Usage Rate: {metrics.get('rag_usage_rate', 0):.1%}")
-            print(f"   Avg Response Time: {metrics.get('avg_response_time', 0):.2f}s")
-        else:
-            print(f"❌ Metrics failed: {response.status_code}")
-    except Exception as e:
-        print(f"❌ Metrics error: {e}")
+        metrics_data = response.json()
+        assert "metrics" in metrics_data
 
-    print("\n" + "=" * 50)
-    print("🎉 API Integration Test Complete!")
-    print("\n📝 Summary:")
-    print(f"   ✅ API Server: Running on {API_BASE_URL}")
-    print("   ✅ Streamlit: Running on http://localhost:8502")
-    print("   ✅ Agent System: Accessible via API")
-    print("   ✅ Metrics: Logged and retrievable")
-    print("   ✅ Integration: Streamlit -> API -> Agents")
+        metrics = metrics_data["metrics"]
+        assert "total_interactions" in metrics
+        assert "rag_usage_rate" in metrics
+        assert "avg_response_time" in metrics
+        assert isinstance(metrics["total_interactions"], int)
+        assert 0 <= metrics["rag_usage_rate"] <= 1
+        assert metrics["avg_response_time"] >= 0
 
+    def test_chat_endpoint_response_time(self, api_base_url):
+        test_message = "Hello"
 
-if __name__ == "__main__":
-    test_api_endpoints()
+        start_time = time.time()
+        response = requests.post(
+            f"{api_base_url}/chat",
+            json={"message": test_message},
+            timeout=15
+        )
+        elapsed_time = time.time() - start_time
+
+        assert response.status_code == 200
+        assert elapsed_time < 15
+
+    def test_chat_endpoint_empty_message(self, api_base_url):
+        response = requests.post(
+            f"{api_base_url}/chat",
+            json={"message": ""},
+            headers={"Content-Type": "application/json"}
+        )
+
+        assert response.status_code == 200
+        chat_data = response.json()
+        assert chat_data["success"] is True
+
+    @pytest.mark.parametrize("endpoint", ["/health", "/agents/info", "/metrics"])
+    def test_get_endpoints_status(self, api_base_url, endpoint):
+        response = requests.get(f"{api_base_url}{endpoint}")
+        assert response.status_code == 200
+        assert response.headers.get("content-type", "").startswith("application/json")

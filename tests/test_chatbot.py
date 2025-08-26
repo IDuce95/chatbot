@@ -76,42 +76,53 @@ class TestChatBot:
     @patch('chatbot.toml.load')
     @patch('chatbot.os.getenv')
     @patch('chatbot.openai.OpenAI')
-    def test_get_response_success_unit(self, mock_openai, mock_getenv, mock_toml_load, mock_config):
+    @patch('agents.agent_graph.AgentGraph')
+    def test_get_response_success_unit(self, mock_agent_graph, mock_openai, mock_getenv, mock_toml_load, mock_config):
         mock_toml_load.return_value = mock_config
         mock_getenv.return_value = "test-api-key"
 
         mock_client = Mock()
-        mock_response = Mock()
-        mock_response.choices = [Mock()]
-        mock_response.choices[0].message.content = "Test response"
-        mock_client.chat.completions.create.return_value = mock_response
         mock_openai.return_value = mock_client
+
+        mock_agent_instance = Mock()
+        mock_agent_instance.process_query.return_value = {
+            "response": "Test response",
+            "agents_used": ["router"],
+            "intent": "test",
+            "quality_score": 4.0,
+            "research_results": [],
+            "metadata": {}
+        }
+        mock_agent_graph.return_value = mock_agent_instance
 
         with patch('builtins.print'):
             bot = ChatBot()
 
         response = bot.get_response("Test question")
         assert response == "Test response"
-        mock_client.chat.completions.create.assert_called_once()
+        mock_agent_instance.process_query.assert_called_once()
 
     @patch('chatbot.toml.load')
     @patch('chatbot.os.getenv')
     @patch('chatbot.openai.OpenAI')
-    def test_get_response_error_unit(self, mock_openai, mock_getenv, mock_toml_load, mock_config):
+    @patch('agents.agent_graph.AgentGraph')
+    def test_get_response_error_unit(self, mock_agent_graph, mock_openai, mock_getenv, mock_toml_load, mock_config):
         mock_toml_load.return_value = mock_config
         mock_getenv.return_value = "test-api-key"
 
         mock_client = Mock()
-        mock_client.chat.completions.create.side_effect = Exception("API Error")
         mock_openai.return_value = mock_client
+
+        mock_agent_instance = Mock()
+        mock_agent_instance.process_query.side_effect = Exception("Agent Error")
+        mock_agent_graph.return_value = mock_agent_instance
 
         with patch('builtins.print'):
             bot = ChatBot()
 
         with patch('builtins.print'):
-            response = bot.get_response("Test question")
-
-        assert response is None
+            with pytest.raises(RuntimeError, match="Agent system failed"):
+                bot.get_response("Test question")
 
     def test_response_time(self, bot):
         start_time = time.time()

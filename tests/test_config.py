@@ -1,43 +1,77 @@
 import sys
 import os
+import pytest
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
 
 from config_utils import get_api_config, get_quality_config
 
 
-def test_configuration():
-    print("🧪 Testing Configuration Loading")
-    print("=" * 40)
+class TestConfiguration:
 
-    api_config = get_api_config()
-    print("\n📡 API Configuration:")
-    print(f"   Base URL: {api_config['base_url']}")
-    print(f"   Port: {api_config['port']}")
-    print(f"   Host: {api_config['host']}")
+    @pytest.fixture
+    def api_config(self):
+        return get_api_config()
 
-    quality_config = get_quality_config()
-    print("\n⭐ Quality Configuration:")
-    print(f"   Minimum Overall Score: {quality_config['minimum_overall_score']}")
-    print(f"   Minimum Critical Score: {quality_config['minimum_critical_aspects_score']}")
-    print(f"   Excellent Threshold: {quality_config['excellent_threshold']}")
-    print(f"   Good Threshold: {quality_config['good_threshold']}")
+    @pytest.fixture
+    def quality_config(self):
+        return get_quality_config()
 
-    print("\n🎯 Quality Score Classification:")
-    test_scores = [1.5, 2.5, 3.5, 4.5, 5.0]
+    def test_api_configuration_structure(self, api_config):
+        assert "base_url" in api_config
+        assert "port" in api_config
+        assert "host" in api_config
 
-    for score in test_scores:
-        if score >= quality_config['excellent_threshold']:
-            color = "🟢 Excellent"
-        elif score >= quality_config['good_threshold']:
-            color = "🟡 Good"
+        assert isinstance(api_config["port"], int)
+        assert isinstance(api_config["host"], str)
+        assert isinstance(api_config["base_url"], str)
+        assert api_config["base_url"].startswith("http")
+
+    def test_quality_configuration_structure(self, quality_config):
+        required_keys = [
+            "minimum_overall_score",
+            "minimum_critical_aspects_score",
+            "excellent_threshold",
+            "good_threshold"
+        ]
+
+        for key in required_keys:
+            assert key in quality_config
+            assert isinstance(quality_config[key], (int, float))
+
+    def test_quality_thresholds_logical_order(self, quality_config):
+        assert quality_config["good_threshold"] < quality_config["excellent_threshold"]
+        assert quality_config["minimum_overall_score"] > 0
+        assert quality_config["minimum_critical_aspects_score"] > 0
+
+    @pytest.mark.parametrize("score,expected_classification", [
+        (1.5, "poor"),
+        (2.5, "poor"),
+        (3.5, "good"),
+        (4.5, "excellent"),
+        (5.0, "excellent")
+    ])
+    def test_quality_score_classification(self, quality_config, score, expected_classification):
+        excellent_threshold = quality_config["excellent_threshold"]
+        good_threshold = quality_config["good_threshold"]
+
+        if score >= excellent_threshold:
+            actual = "excellent"
+        elif score >= good_threshold:
+            actual = "good"
         else:
-            color = "🔴 Poor"
-        print(f"   Score {score}: {color}")
+            actual = "poor"
 
-    print("\n" + "=" * 40)
-    print("✅ Configuration test completed!")
+        assert actual == expected_classification
 
+    def test_api_config_values_are_valid(self, api_config):
+        assert api_config["port"] > 0
+        assert api_config["port"] < 65536
+        assert len(api_config["host"]) > 0
+        assert ":" in api_config["base_url"]
 
-if __name__ == "__main__":
-    test_configuration()
+    def test_quality_config_values_are_valid(self, quality_config):
+        for value in quality_config.values():
+            assert isinstance(value, (int, float))
+            assert value > 0
+            assert value <= 5

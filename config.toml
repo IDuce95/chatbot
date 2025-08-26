@@ -57,8 +57,8 @@ file = "chatbot.log"
 
 
 [api]
-base_url = "http://localhost:8001"
-port = 8001
+base_url = "http://localhost:8000"
+port = 8000
 host = "0.0.0.0"
 
 

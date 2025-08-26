@@ -57,18 +57,3 @@ class ReviewVerdict(BaseModel):
     )
     reason: str = Field(description="Reason for the verdict")
     quality: QualityScore = Field(description="Quality breakdown")
-
-
-class AgentProcessRequest(BaseModel):
-    query: str
-    conversation_history: Optional[List[Dict[str, str]]] = []
-
-
-class AgentProcessResponse(BaseModel):
-    response: str
-    quality_score: float
-    agents_used: List[str]
-    intent: str
-    research_results: List[Dict[str, Any]]
-    metadata: Dict[str, Any]
-    processing_time: float

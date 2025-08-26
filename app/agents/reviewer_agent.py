@@ -50,7 +50,7 @@ class ReviewerAgent(BaseAgent):
             state["feedback_loop"] = needs_improvement
             state["metadata"]["review_verdict"] = verdict_data.verdict
             state["metadata"]["review_feedback"] = verdict_data.reason
-            state["metadata"]["quality_breakdown"] = verdict_data.quality.dict()
+            state["metadata"]["quality_breakdown"] = verdict_data.quality.model_dump()
 
             if needs_improvement:
                 print(f"⚠️ Quality too low ({verdict_data.quality.overall:.1f}), requesting improvement")

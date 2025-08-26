@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 import sys
 import os
-import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
@@ -12,9 +11,7 @@ from pydantic_models import (
     MessageResponse,
     HistoryResponse,
     StatusResponse,
-    MetricsResponse,
-    AgentProcessRequest,
-    AgentProcessResponse
+    MetricsResponse
 )
 
 api_config = get_api_config()
@@ -53,65 +50,40 @@ async def chat(request: MessageRequest):
     try:
         bot = get_chatbot()
 
-        if hasattr(bot, 'use_agents') and bot.use_agents and bot.agent_graph:
-            result = bot.agent_graph.process_query(request.message, bot.get_history())
+        response = bot.get_response(request.message)
+        rag_used = hasattr(bot, 'last_rag_used') and bot.last_rag_used
+
+        if response:
+            agents_used = []
+            intent = ""
+            quality_score = 0.0
+            research_results = []
+            metadata = {}
+
+            if hasattr(bot, 'use_agents') and bot.use_agents:
+                conversation_history = bot.get_history()
+                if len(conversation_history) >= 2:
+                    agents_used = getattr(bot, '_last_agents_used', [])
+                    intent = getattr(bot, '_last_intent', "")
+                    quality_score = getattr(bot, '_last_quality_score', 0.0)
+                    research_results = getattr(bot, '_last_research_results', [])
+                    metadata = getattr(bot, '_last_metadata', {})
 
             return MessageResponse(
-                response=result.get("response", ""),
-                success=bool(result.get("response")),
-                rag_used="research" in result.get("agents_used", []),
-                agents_used=result.get("agents_used", []),
-                intent=result.get("intent", ""),
-                quality_score=result.get("quality_score", 0.0),
-                research_results=result.get("research_results", []),
-                metadata=result.get("metadata", {})
+                response=response,
+                success=True,
+                rag_used=rag_used,
+                agents_used=agents_used,
+                intent=intent,
+                quality_score=quality_score,
+                research_results=research_results,
+                metadata=metadata
             )
         else:
-            response = bot.get_response(request.message)
-            rag_used = hasattr(bot, 'last_rag_used') and bot.last_rag_used
-
-            if response:
-                return MessageResponse(
-                    response=response,
-                    success=True,
-                    rag_used=rag_used,
-                    agents_used=[],
-                    intent="",
-                    quality_score=0.0,
-                    research_results=[],
-                    metadata={}
-                )
-            else:
-                raise HTTPException(status_code=500, detail="Failed to get response from ChatBot")
+            raise HTTPException(status_code=500, detail="Failed to get response from ChatBot")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing message: {e}")
-
-
-@app.post("/agents/process", response_model=AgentProcessResponse)
-async def process_with_agents(request: AgentProcessRequest):
-    try:
-        bot = get_chatbot()
-
-        if not (hasattr(bot, 'use_agents') and bot.use_agents and bot.agent_graph):
-            raise HTTPException(status_code=400, detail="Agent system is not available")
-
-        start_time = time.time()
-        result = bot.agent_graph.process_query(request.query, request.conversation_history)
-        processing_time = time.time() - start_time
-
-        return AgentProcessResponse(
-            response=result.get("response", ""),
-            quality_score=result.get("quality_score", 0.0),
-            agents_used=result.get("agents_used", []),
-            intent=result.get("intent", ""),
-            research_results=result.get("research_results", []),
-            metadata=result.get("metadata", {}),
-            processing_time=processing_time
-        )
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing with agents: {e}")
 
 
 @app.get("/history", response_model=HistoryResponse)
@@ -183,6 +155,57 @@ async def get_metrics():
         return MetricsResponse(metrics=metrics)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting metrics: {e}")
+
+
+@app.get("/metrics/detailed")
+async def get_detailed_metrics():
+    try:
+        bot = get_chatbot()
+        if bot.use_rag and bot.rag_manager:
+            session_metrics = bot.rag_manager.metrics.session_metrics
+            summary = bot.rag_manager.metrics.get_session_summary()
+
+            response_times = [m.get('response_time', 0) for m in session_metrics]
+            quality_scores = []
+            latest_interaction = {}
+
+            for m in session_metrics:
+                gen_metrics = m.get('generation_metrics', {})
+                if gen_metrics and 'perplexity_approx' in gen_metrics:
+                    perplexity = gen_metrics.get('perplexity_approx', 10)
+                    word_count = gen_metrics.get('response_word_count', 0)
+                    uniqueness = gen_metrics.get('unique_word_ratio', 0.5)
+
+                    quality = min(5.0, max(1.0, 5.0 - (perplexity / 10) + (uniqueness * 2) + min(word_count / 50, 1)))
+                    quality_scores.append(quality)
+                else:
+                    quality_scores.append(3.0)
+
+            if session_metrics:
+                latest = session_metrics[-1]
+                latest_interaction = {
+                    'response_word_count': latest.get('generation_metrics', {}).get('response_word_count', 0),
+                    'perplexity_approx': latest.get('generation_metrics', {}).get('perplexity_approx', 0),
+                    'unique_word_ratio': latest.get('generation_metrics', {}).get('unique_word_ratio', 0),
+                    'quality_score': quality_scores[-1] if quality_scores else 0,
+                    'agents_used': latest.get('context', '').split('Agents: ')[-1].split(' |')[0].split(', ') if 'Agents:' in latest.get('context', '') else [],
+                    'response_time': latest.get('response_time', 0)
+                }
+
+            detailed_summary = summary.copy()
+            detailed_summary.update({
+                'response_time_history': response_times,
+                'quality_score_history': quality_scores,
+                'latest_interaction': latest_interaction,
+                'avg_quality_score': sum(quality_scores) / len(quality_scores) if quality_scores else 0,
+                'session_start_time': session_metrics[0]['timestamp'] if session_metrics else None
+            })
+
+            return {"detailed_metrics": detailed_summary}
+        else:
+            return {"detailed_metrics": {"total_interactions": 0, "status": "RAG not enabled"}}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting detailed metrics: {e}")
 
 
 @app.post("/metrics/export")

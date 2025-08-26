@@ -7,15 +7,6 @@ from typing import Dict, Any
 
 
 def load_config(config_path: str = "config.toml") -> Dict[str, Any]:
-    """
-    Load configuration from TOML file.
-
-    Args:
-        config_path: Path to the configuration file
-
-    Returns:
-        Dictionary containing configuration
-    """
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
@@ -23,35 +14,17 @@ def load_config(config_path: str = "config.toml") -> Dict[str, Any]:
 
 
 def get_api_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
-    """
-    Get API configuration settings.
-
-    Args:
-        config: Configuration dictionary (if None, loads from default path)
-
-    Returns:
-        Dictionary containing API configuration
-    """
     if config is None:
         config = load_config()
 
     return config.get("api", {
-        "base_url": "http://localhost:8001",
-        "port": 8001,
+        "base_url": "http://localhost:8000",
+        "port": 8000,
         "host": "0.0.0.0"
     })
 
 
 def get_quality_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
-    """
-    Get quality configuration settings.
-
-    Args:
-        config: Configuration dictionary (if None, loads from default path)
-
-    Returns:
-        Dictionary containing quality configuration
-    """
     if config is None:
         config = load_config()
 
