@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Literal
+from typing import List, Dict, Any, Literal, Optional
 
 
 class MessageRequest(BaseModel):
@@ -9,6 +9,12 @@ class MessageRequest(BaseModel):
 class MessageResponse(BaseModel):
     response: str
     success: bool
+    rag_used: Optional[bool] = False
+    agents_used: Optional[List[str]] = []
+    intent: Optional[str] = ""
+    quality_score: Optional[float] = 0.0
+    research_results: Optional[List[Dict[str, Any]]] = []
+    metadata: Optional[Dict[str, Any]] = {}
 
 
 class HistoryResponse(BaseModel):
@@ -19,6 +25,7 @@ class HistoryResponse(BaseModel):
 class StatusResponse(BaseModel):
     status: str
     model_info: str
+    agent_system_active: bool
 
 
 class MetricsResponse(BaseModel):
@@ -50,3 +57,18 @@ class ReviewVerdict(BaseModel):
     )
     reason: str = Field(description="Reason for the verdict")
     quality: QualityScore = Field(description="Quality breakdown")
+
+
+class AgentProcessRequest(BaseModel):
+    query: str
+    conversation_history: Optional[List[Dict[str, str]]] = []
+
+
+class AgentProcessResponse(BaseModel):
+    response: str
+    quality_score: float
+    agents_used: List[str]
+    intent: str
+    research_results: List[Dict[str, Any]]
+    metadata: Dict[str, Any]
+    processing_time: float

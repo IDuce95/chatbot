@@ -55,13 +55,11 @@ class ChatBot:
             raise
 
     def get_response_with_agents(self, user_message: str) -> Optional[str]:
-        print(f"🔧 DEBUG: get_response_with_agents STARTED for: {user_message[:30]}...")
         try:
             import time
             start_time = time.time()
 
             result = self.agent_graph.process_query(user_message, self.conversation_history)
-            print("🔧 DEBUG: agent_graph.process_query COMPLETED")
 
             response_text = result.get("response", "")
             agents_used = result.get("agents_used", [])

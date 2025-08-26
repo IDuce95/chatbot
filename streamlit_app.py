@@ -1,12 +1,19 @@
 import os
 import sys
-
+import requests
 import plotly.graph_objects as go
 import streamlit as st
 
 sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
 
 from chatbot import ChatBot
+from config_utils import get_api_config, get_quality_config
+
+
+api_config = get_api_config()
+quality_config = get_quality_config()
+
+API_BASE_URL = api_config["base_url"]
 
 st.set_page_config(
     page_title="CodeBot Assistant",
@@ -14,6 +21,51 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+
+def call_api_chat(message: str):
+    try:
+        response = requests.post(
+            f"{API_BASE_URL}/chat",
+            json={"message": message},
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to connect to API: {e}")
+        return None
+
+
+def call_api_agents_process(query: str, conversation_history: list = None):
+    try:
+        payload = {
+            "query": query,
+            "conversation_history": conversation_history or []
+        }
+
+        response = requests.post(
+            f"{API_BASE_URL}/agents/process",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return response.json()
+        else:
+            st.error(f"API Error: {response.status_code} - {response.text}")
+            return None
+
+    except requests.exceptions.RequestException as e:
+        st.error(f"Failed to connect to API: {e}")
+        return None
 
 
 def initialize_chatbot():
@@ -163,7 +215,9 @@ def display_chat_interface():
                                 st.caption(f"🎯 Intent: {intent}")
                         with col3:
                             if quality_score > 0:
-                                quality_color = "🟢" if quality_score >= 4 else "🟡" if quality_score >= 3 else "🔴"
+                                excellent_threshold = quality_config["excellent_threshold"]
+                                good_threshold = quality_config["good_threshold"]
+                                quality_color = "🟢" if quality_score >= excellent_threshold else "🟡" if quality_score >= good_threshold else "🔴"
                                 st.caption(f"{quality_color} Quality: {quality_score:.1f}")
 
                         if agent_steps:
@@ -203,9 +257,8 @@ def display_chat_interface():
                     try:
                         status_placeholder.info("🚀 Starting Multi-Agent Processing...")
 
-                        class StreamlitAgentGraph:
-                            def __init__(self, agent_graph):
-                                self.agent_graph = agent_graph
+                        class StreamlitAgentProcessor:
+                            def __init__(self):
                                 self.steps = []
 
                             def process_query_with_steps(self, query):
@@ -213,7 +266,27 @@ def display_chat_interface():
                                 steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
 
                                 conversation_history = st.session_state.chatbot.get_history()
-                                result = self.agent_graph.process_query(query, conversation_history)
+
+                                # Call API instead of direct agent processing
+                                api_result = call_api_agents_process(query, conversation_history)
+
+                                if not api_result:
+                                    return {
+                                        "response": "Failed to process query via API",
+                                        "agents_used": ["error"],
+                                        "intent": "error",
+                                        "quality_score": 0.0
+                                    }
+
+                                # Convert API response to expected format
+                                result = {
+                                    "response": api_result.get("response", ""),
+                                    "agents_used": api_result.get("agents_used", []),
+                                    "intent": api_result.get("intent", ""),
+                                    "quality_score": api_result.get("quality_score", 0.0),
+                                    "research_results": api_result.get("research_results", []),
+                                    "metadata": api_result.get("metadata", {})
+                                }
 
                                 agents_used = result.get("agents_used", [])
                                 intent = result.get("intent", "")
@@ -246,7 +319,7 @@ def display_chat_interface():
 
                                 return result
 
-                        wrapper = StreamlitAgentGraph(st.session_state.chatbot.agent_graph)
+                        wrapper = StreamlitAgentProcessor()
                         result = wrapper.process_query_with_steps(st.session_state.current_prompt)
 
                         response = result.get("response", "")

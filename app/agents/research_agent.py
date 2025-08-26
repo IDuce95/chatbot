@@ -77,7 +77,6 @@ class ResearchAgent(BaseAgent):
 
         if enhancements:
             enhanced = f"{original_query} - need {' '.join(enhancements)} information"
-            print(f"🔧 Enhanced query: {enhanced}")
             return enhanced
         else:
             return f"{original_query} - more detailed information needed"

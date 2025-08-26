@@ -56,6 +56,21 @@ format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 file = "chatbot.log"
 
 
+[api]
+base_url = "http://localhost:8001"
+port = 8001
+host = "0.0.0.0"
+
+
+[quality]
+# Quality thresholds for reviewer agent
+minimum_overall_score = 1.0
+minimum_critical_aspects_score = 1.0
+# Quality color thresholds for UI
+excellent_threshold = 4.0
+good_threshold = 3.0
+
+
 [agents]
 [agents.router]
 prompt = """You are a routing agent that classifies user queries into categories.

@@ -8,6 +8,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
 from agents.base_agent import BaseAgent
 from agents.state import AgentState
 from pydantic_models import ReviewVerdict, QualityScore
+from config_utils import get_quality_config
 
 
 class ReviewerAgent(BaseAgent):
@@ -18,6 +19,7 @@ class ReviewerAgent(BaseAgent):
             prompt=config["agents"]["reviewer"]["prompt"]
         )
         self.config = config
+        self.quality_config = get_quality_config(config)
 
     def process(self, state: AgentState) -> AgentState:
         return self.review_response(state)
@@ -171,8 +173,11 @@ class ReviewerAgent(BaseAgent):
             print("🛑 Max iterations reached, not improving")
             return False
 
-        if verdict_data.quality.overall < 1.0:
-            print(f"⚠️ Overall quality extremely low ({verdict_data.quality.overall:.1f} < 1.0)")
+        min_overall = self.quality_config["minimum_overall_score"]
+        min_critical = self.quality_config["minimum_critical_aspects_score"]
+
+        if verdict_data.quality.overall < min_overall:
+            print(f"⚠️ Overall quality extremely low ({verdict_data.quality.overall:.1f} < {min_overall})")
             return True
 
         critical_aspects = [
@@ -180,7 +185,7 @@ class ReviewerAgent(BaseAgent):
             verdict_data.quality.accuracy,
             verdict_data.quality.clarity
         ]
-        if any(score < 1.0 for score in critical_aspects):
+        if any(score < min_critical for score in critical_aspects):
             print(f"⚠️ Critical aspect extremely low: {critical_aspects}")
             return True
 

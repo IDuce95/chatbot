@@ -190,8 +190,6 @@ class AgentGraph:
                 if retrieved_docs:
                     context = "\n".join([doc.get('content', '') for doc in retrieved_docs if isinstance(doc, dict)])
 
-                print(f"🔧 AGENT_GRAPH: Logging metrics - rag_used={rag_used}, docs_count={len(retrieved_docs)}")
-
                 try:
                     self.chatbot.rag_manager.metrics.log_interaction(
                         query=user_query,
@@ -201,9 +199,8 @@ class AgentGraph:
                         response_time=response_time,
                         rag_used=rag_used
                     )
-                    print("🔧 AGENT_GRAPH: Metrics logged successfully")
                 except Exception as e:
-                    print(f"🔧 AGENT_GRAPH: Error logging metrics: {e}")
+                    print(f"Warning: Failed to log metrics: {e}")
 
             return {
                 "response": response,
@@ -232,7 +229,7 @@ class AgentGraph:
                         rag_used=False
                     )
                 except Exception as log_error:
-                    print(f"🔧 AGENT_GRAPH: Error logging error metrics: {log_error}")
+                    print(f"Warning: Failed to log error metrics: {log_error}")
 
             return {
                 "response": error_response,
