@@ -1,11 +1,14 @@
-import os
 import sys
+import os
 import requests
 import plotly.graph_objects as go
 import streamlit as st
 import datetime
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
+# Add parent directory to path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, current_dir)
 
 from config_utils import get_api_config, get_quality_config
 
@@ -192,7 +195,7 @@ def main():
                 """
                 <div style="
                     border-left: 2px solid #e0e0e0;
-                    height: 900px;
+                    height: 1000px;
                     margin: 0 auto;
                     width: 1px;
                 "></div>

@@ -1,16 +1,12 @@
-import sys
-import os
 from typing import List
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
 from langgraph.graph import StateGraph, END
-from chatbot import ChatBot
-from agents.state import AgentState
-from agents.router_agent import RouterAgent
-from agents.research_agent import ResearchAgent
-from agents.code_agent import CodeAgent
-from agents.reviewer_agent import ReviewerAgent
+from ..chatbot import ChatBot
+from .state import AgentState
+from .router_agent import RouterAgent
+from .research_agent import ResearchAgent
+from .code_agent import CodeAgent
+from .reviewer_agent import ReviewerAgent
 
 
 class AgentGraph:
@@ -197,7 +193,8 @@ class AgentGraph:
                         response=response,
                         context=context,
                         response_time=response_time,
-                        rag_used=rag_used
+                        rag_used=rag_used,
+                        quality_score=final_state.get("quality_score", 0.0)
                     )
                 except Exception as e:
                     print(f"Warning: Failed to log metrics: {e}")
@@ -226,7 +223,8 @@ class AgentGraph:
                         response=error_response,
                         context="",
                         response_time=response_time,
-                        rag_used=False
+                        rag_used=False,
+                        quality_score=0.0
                     )
                 except Exception as log_error:
                     print(f"Warning: Failed to log error metrics: {log_error}")

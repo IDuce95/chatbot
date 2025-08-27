@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import openai
 import toml
 from dotenv import load_dotenv
-from rag_manager import RAGManager
+from .rag_manager import RAGManager
 
 load_dotenv()
 
@@ -35,7 +35,7 @@ class ChatBot:
         self.agent_graph = None
         self.use_agents = False
         try:
-            from agents.agent_graph import AgentGraph
+            from .agents.agent_graph import AgentGraph
             self.agent_graph = AgentGraph(self, self.config)
             self.use_agents = True
             self.model_info += " + Multi-Agent System"

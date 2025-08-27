@@ -1,12 +1,8 @@
 from fastapi import FastAPI, HTTPException
-import sys
-import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
-
-from chatbot import ChatBot
-from config_utils import get_api_config
-from pydantic_models import (
+from .chatbot import ChatBot
+from .config_utils import get_api_config
+from .pydantic_models import (
     MessageRequest,
     MessageResponse,
     HistoryResponse,
@@ -166,20 +162,8 @@ async def get_detailed_metrics():
             summary = bot.rag_manager.metrics.get_session_summary()
 
             response_times = [m.get('response_time', 0) for m in session_metrics]
-            quality_scores = []
+            quality_scores = [m.get('quality_score', 0.0) for m in session_metrics]
             latest_interaction = {}
-
-            for m in session_metrics:
-                gen_metrics = m.get('generation_metrics', {})
-                if gen_metrics and 'perplexity_approx' in gen_metrics:
-                    perplexity = gen_metrics.get('perplexity_approx', 10)
-                    word_count = gen_metrics.get('response_word_count', 0)
-                    uniqueness = gen_metrics.get('unique_word_ratio', 0.5)
-
-                    quality = min(5.0, max(1.0, 5.0 - (perplexity / 10) + (uniqueness * 2) + min(word_count / 50, 1)))
-                    quality_scores.append(quality)
-                else:
-                    quality_scores.append(3.0)
 
             if session_metrics:
                 latest = session_metrics[-1]
@@ -187,7 +171,7 @@ async def get_detailed_metrics():
                     'response_word_count': latest.get('generation_metrics', {}).get('response_word_count', 0),
                     'perplexity_approx': latest.get('generation_metrics', {}).get('perplexity_approx', 0),
                     'unique_word_ratio': latest.get('generation_metrics', {}).get('unique_word_ratio', 0),
-                    'quality_score': quality_scores[-1] if quality_scores else 0,
+                    'quality_score': latest.get('quality_score', 0.0),
                     'agents_used': latest.get('context', '').split('Agents: ')[-1].split(' |')[0].split(', ') if 'Agents:' in latest.get('context', '') else [],
                     'response_time': latest.get('response_time', 0)
                 }

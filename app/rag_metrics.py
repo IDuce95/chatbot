@@ -321,7 +321,7 @@ class RAGMetrics:
 
         return len(intersection) / len(union)
 
-    def log_interaction(self, query: str, retrieved_docs: List[Dict], response: str, context: str = "", response_time: float = 0.0, rag_used: bool = False):
+    def log_interaction(self, query: str, retrieved_docs: List[Dict], response: str, context: str = "", response_time: float = 0.0, rag_used: bool = False, quality_score: float = 0.0):
         try:
             interaction = {
                 'timestamp': time.time(),
@@ -332,7 +332,8 @@ class RAGMetrics:
                 'rag_used': rag_used,
                 'retrieved_docs_count': len(retrieved_docs) if retrieved_docs else 0,
                 'retrieval_metrics': self.evaluate_retrieval(query, retrieved_docs),
-                'generation_metrics': self.evaluate_generation(query, response, context)
+                'generation_metrics': self.evaluate_generation(query, response, context),
+                'quality_score': quality_score
             }
 
             self.session_metrics.append(interaction)

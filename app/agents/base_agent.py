@@ -1,11 +1,7 @@
 from abc import ABC, abstractmethod
-import sys
-import os
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-
-from chatbot import ChatBot
-from agents.state import AgentState
+from ..chatbot import ChatBot
+from .state import AgentState
 
 
 class BaseAgent(ABC):

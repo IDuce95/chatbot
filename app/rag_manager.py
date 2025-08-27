@@ -8,7 +8,7 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
-from rag_metrics import RAGMetrics
+from .rag_metrics import RAGMetrics
 
 
 class RAGManager:
