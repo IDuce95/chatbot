@@ -24,7 +24,8 @@ class BaseAgent(ABC):
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
-            return f"Error: {e}"
+            logging.error("Exception in _call_llm: %s", e, exc_info=True)
+            return "An error occurred while processing your request."
 
     def _format_conversation_context(self, conversation_history: list, max_messages: int = 6) -> str:
         if not conversation_history:
