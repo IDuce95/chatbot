@@ -77,7 +77,7 @@ def display_metrics_sidebar():
                 for agent in agent_info.get("available_agents", []):
                     st.sidebar.markdown(f"- {agent['icon']} {agent['name']}")
             else:
-                st.sidebar.warning("� Agent System: INACTIVE")
+                st.sidebar.warning("⚠️ Agent System: INACTIVE")
         else:
             st.sidebar.warning("🔄 Agent System: UNKNOWN")
     except Exception as e:
