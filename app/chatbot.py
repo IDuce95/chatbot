@@ -4,7 +4,7 @@ from typing import Dict, List, Optional
 import openai
 import toml
 from dotenv import load_dotenv
-from rag_manager import RAGManager
+from .rag_manager import RAGManager
 
 load_dotenv()
 
@@ -32,62 +32,55 @@ class ChatBot:
                 print(f"Warning: Could not initialize RAG manager: {e}")
                 self.use_rag = False
 
-    def get_response(self, user_message: str) -> Optional[str]:
+        self.agent_graph = None
+        self.use_agents = False
         try:
-            import time
-            start_time = time.time()
+            from .agents.agent_graph import AgentGraph
+            self.agent_graph = AgentGraph(self, self.config)
+            self.use_agents = True
+            self.model_info += " + Multi-Agent System"
+            print("✅ Multi-Agent System initialized successfully!")
+        except Exception as e:
+            print(f"Warning: Could not initialize Agent Graph: {e}")
+            self.use_agents = False
 
-            context = ""
-            rag_used = False
-            retrieved_docs_info = []
+    def get_response(self, user_message: str) -> Optional[str]:
+        if not self.use_agents or not self.agent_graph:
+            raise RuntimeError("Agent system not available. Please ensure proper initialization.")
 
-            if self.use_rag and self.rag_manager:
-                try:
-                    context, rag_used = self.rag_manager.get_context_with_relevance(user_message, k=3)
-                except Exception as e:
-                    print(f"Warning: RAG search failed: {e}")
-                    context = ""
-                    rag_used = False
+        return self.get_response_with_agents(user_message)
 
-            system_content = self.config["system"]["preprompt"]
-            if context:
-                system_content += f"\n\nRelevant context from knowledge base:\n{context}"
+    def get_response_with_agents(self, user_message: str) -> Optional[str]:
+        try:
+            result = self.agent_graph.process_query(user_message, self.conversation_history)
 
-            messages = [{"role": "system", "content": system_content}]
-            messages.extend(self.conversation_history)
-            messages.append({"role": "user", "content": user_message})
-
-            response = self.client.chat.completions.create(
-                model=self.config["model"]["name"],
-                messages=messages,
-                temperature=self.config["model"]["temperature"],
-                max_tokens=self.config["model"]["max_tokens"],
-            )
-
-            assistant_response = response.choices[0].message.content
-            end_time = time.time()
-            response_time = end_time - start_time
+            response_text = result.get("response", "")
+            agents_used = result.get("agents_used", [])
+            intent = result.get("intent", "")
+            quality_score = result.get("quality_score", 0.0)
+            research_results = result.get("research_results", [])
 
             self.conversation_history.append({"role": "user", "content": user_message})
-            self.conversation_history.append({"role": "assistant", "content": assistant_response})
+            self.conversation_history.append({"role": "assistant", "content": response_text})
 
-            self.last_rag_used = rag_used
+            self._last_agents_used = agents_used
+            self._last_intent = intent
+            self._last_quality_score = quality_score
+            self._last_research_results = research_results
+            self._last_metadata = result.get("metadata", {})
 
-            if self.use_rag and self.rag_manager:
-                self.rag_manager.metrics.log_interaction(
-                    query=user_message,
-                    retrieved_docs=retrieved_docs_info,
-                    response=assistant_response,
-                    context=context,
-                    response_time=response_time,
-                    rag_used=rag_used
-                )
+            if len(self.conversation_history) > 20:
+                self.conversation_history = self.conversation_history[-20:]
 
-            return assistant_response
+            self.last_rag_used = "research" in agents_used
+
+            print(f"🤖 Agents used: {agents_used} | Intent: {intent} | Quality: {quality_score:.2f}")
+
+            return response_text
 
         except Exception as e:
-            print(f"Error communicating with OpenAI: {e}")
-            return None
+            print(f"Agent system error: {e}")
+            raise RuntimeError(f"Agent system failed: {e}")
 
     def clear_history(self):
         self.conversation_history = []
@@ -114,34 +107,3 @@ class ChatBot:
             self.rag_manager.clear_metrics()
         else:
             print("RAG not enabled, no metrics to clear")
-
-    def start_chatting(self):
-        print(self.model_info)
-        print("Type 'q' to stop")
-        print("=" * 50)
-
-        while True:
-            try:
-                user_input = input("\n👤 You: ").strip()
-
-                if user_input.lower() == 'q':
-                    print("🤖 CodeBot: See you later!")
-                    break
-
-                if not user_input:
-                    print("⚠️ Enter a question or command!")
-                    continue
-
-                print("🤖 CodeBot: thinking...")
-                response = self.get_response(user_input)
-
-                if response:
-                    print(f"🤖 CodeBot: {response}")
-                else:
-                    print("Failed to get response. Try again!")
-
-            except KeyboardInterrupt:
-                print("\n🤖 CodeBot: See you later!")
-                break
-            except Exception as e:
-                print(f"Error occurred: {e}")

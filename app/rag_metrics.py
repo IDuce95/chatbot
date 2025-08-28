@@ -321,21 +321,38 @@ class RAGMetrics:
 
         return len(intersection) / len(union)
 
-    def log_interaction(self, query: str, retrieved_docs: List[Dict], response: str, context: str = "", response_time: float = 0.0, rag_used: bool = False):
-        interaction = {
-            'timestamp': time.time(),
-            'query': query,
-            'response': response,
-            'context': context,
-            'response_time': response_time,
-            'rag_used': rag_used,
-            'retrieved_docs_count': len(retrieved_docs),
-            'retrieval_metrics': self.evaluate_retrieval(query, retrieved_docs),
-            'generation_metrics': self.evaluate_generation(query, response, context)
-        }
+    def log_interaction(self, query: str, retrieved_docs: List[Dict], response: str, context: str = "", response_time: float = 0.0, rag_used: bool = False, quality_score: float = 0.0):
+        try:
+            interaction = {
+                'timestamp': time.time(),
+                'query': query,
+                'response': response,
+                'context': context,
+                'response_time': response_time,
+                'rag_used': rag_used,
+                'retrieved_docs_count': len(retrieved_docs) if retrieved_docs else 0,
+                'retrieval_metrics': self.evaluate_retrieval(query, retrieved_docs),
+                'generation_metrics': self.evaluate_generation(query, response, context),
+                'quality_score': quality_score
+            }
 
-        self.session_metrics.append(interaction)
-        return interaction
+            self.session_metrics.append(interaction)
+            return interaction
+        except Exception as e:
+            basic_interaction = {
+                'timestamp': time.time(),
+                'query': query,
+                'response': response,
+                'context': context,
+                'response_time': response_time,
+                'rag_used': rag_used,
+                'retrieved_docs_count': len(retrieved_docs) if retrieved_docs else 0,
+                'retrieval_metrics': {},
+                'generation_metrics': {}
+            }
+            self.session_metrics.append(basic_interaction)
+            logging.warning(f"Warning: log_interaction error: {e}")
+            return basic_interaction
 
     def get_session_summary(self) -> Dict[str, Any]:
         if not self.session_metrics:

@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-from api_server import app
+from app.api_server import app
 
 client = TestClient(app)
 
