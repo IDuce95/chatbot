@@ -351,7 +351,7 @@ class RAGMetrics:
                 'generation_metrics': {}
             }
             self.session_metrics.append(basic_interaction)
-            print(f"Warning: log_interaction error: {e}")
+            logging.warning(f"Warning: log_interaction error: {e}")
             return basic_interaction
 
     def get_session_summary(self) -> Dict[str, Any]:
