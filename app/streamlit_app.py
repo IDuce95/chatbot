@@ -5,7 +5,6 @@ import plotly.graph_objects as go
 import streamlit as st
 import datetime
 
-# Add parent directory to path for imports
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, current_dir)
@@ -16,7 +15,7 @@ from config_utils import get_api_config, get_quality_config
 api_config = get_api_config()
 quality_config = get_quality_config()
 
-API_BASE_URL = api_config["base_url"]
+API_BASE_URL = os.getenv("API_BASE_URL", api_config["base_url"])
 
 st.set_page_config(
     page_title="CodeBot Assistant",
