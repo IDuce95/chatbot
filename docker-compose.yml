@@ -50,7 +50,3 @@ networks:
     driver: bridge
 
 volumes:
-  chroma_data:
-    driver: local
-  faiss_data:
-    driver: local
