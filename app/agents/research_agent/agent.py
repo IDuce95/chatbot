@@ -1,5 +1,5 @@
-from .base_agent import BaseAgent
-from .state import AgentState
+from ..base_agent import BaseAgent
+from ..state import AgentState
 
 
 class ResearchAgent(BaseAgent):

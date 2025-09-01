@@ -1,6 +1,3 @@
-"""
-Configuration utilities for the chatbot project
-"""
 import toml
 import os
 from typing import Dict, Any

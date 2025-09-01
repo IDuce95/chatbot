@@ -1,9 +1,10 @@
-import sys
-import os
-import requests
-import plotly.graph_objects as go
-import streamlit as st
 import datetime
+import os
+import sys
+
+import plotly.graph_objects as go
+import requests
+import streamlit as st
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -16,6 +17,7 @@ api_config = get_api_config()
 quality_config = get_quality_config()
 
 API_BASE_URL = os.getenv("API_BASE_URL", api_config["base_url"])
+
 
 st.set_page_config(
     page_title="CodeBot Assistant",

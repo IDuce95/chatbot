@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -48,5 +46,3 @@ services:
 networks:
   chatbot-network:
     driver: bridge
-
-volumes:

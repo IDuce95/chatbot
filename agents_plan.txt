@@ -1,9 +1,3 @@
-Zmiana w strukturze katalogów w kodzie:
-ma być app/agents - tutaj kod base_agent, state, graph itd.
-potem app/agents/code_agent - tutaj plik tools.py w którym są toole tego agenta i plik code_agent.py w którym jest kod tego agenta
-i taki katalog ma powstać dla każdego agenta
-
-
 Nowy agent - ConversationAgent gdy ma być także „pogadankowym” agentem dla użytkownika.
 Pytania ogólne, koncepcyjne, small-talkowe, nie związane z bazą ani z kodem.
 Ten agent użyje LLM (bez RAG) do odpowiedzi koncepcyjnej albo ogólnej.

@@ -1,11 +1,13 @@
+from typing import Any, Dict, List, Optional
+
 from typing_extensions import TypedDict
-from typing import List, Optional, Dict, Any
 
 
 class AgentState(TypedDict):
     user_query: str
     conversation_history: List[Dict[str, str]]
     intent_classification: str
+    target_agent: str
     research_results: List[str]
     generated_code: Optional[str]
     final_response: str

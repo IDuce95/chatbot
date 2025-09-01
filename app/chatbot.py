@@ -4,6 +4,7 @@ from typing import Dict, List, Optional
 import openai
 import toml
 from dotenv import load_dotenv
+
 from .rag_manager import RAGManager
 
 load_dotenv()
