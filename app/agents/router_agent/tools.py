@@ -1,4 +1,5 @@
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from ...pydantic_models import RouterDecision
 from ..base_tool import BaseTool
 
@@ -8,7 +9,7 @@ class ClassifierTool(BaseTool):
         self.chatbot = chatbot
         self.config = config
 
-    def execute(self, query: str, conversation_history: List[Dict] = None) -> RouterDecision:
+    def execute(self, query: str) -> RouterDecision:
         classification_prompt = self.config["agents"]["router"]["prompt"]
 
         messages = [

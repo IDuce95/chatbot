@@ -61,7 +61,11 @@ class AgentGraph:
         return workflow.compile()
 
     def _router_node(self, state: AgentState) -> AgentState:
+        print(f"🎯 RouterAgent: Starting classification for query: '{state['user_query'][:80]}...'")
         state = self.router_agent.process(state)
+
+        print(f"🎯 RouterAgent: Classification complete - Intent: {state.get('intent_classification', '')}, Confidence: {state.get('metadata', {}).get('router_confidence', 0):.2f}, Target: {state.get('target_agent', '')}")
+
         self._add_trace_entry(state, "router", {
             "step": "classification",
             "intent": state.get("intent_classification", ""),
@@ -71,69 +75,120 @@ class AgentGraph:
         return state
 
     def _research_node(self, state: AgentState) -> AgentState:
-        print(f"📚 Research conducting for: {state['intent_classification']}")
+        print(f"📚 ResearchAgent: Starting documentation search for intent: {state['intent_classification']}")
+        print("📚 ResearchAgent: Using VectorDBRetrieverTool to search knowledge base...")
 
         state = self.research_agent.process(state)
+
+        docs_found = len(state.get("research_results", []))
+        relevance_score = state.get("metadata", {}).get("relevance_score", 0)
+        sources = [r.get("source", "") for r in state.get("research_results", [])][:3]
+
+        print(f"📚 ResearchAgent: Search complete - Found {docs_found} relevant documents, Relevance score: {relevance_score:.2f}")
+        if sources:
+            print(f"📚 ResearchAgent: Top sources: {', '.join(sources)}")
+
+        if docs_found > 0:
+            print("📚 ResearchAgent: Using KnowledgeFilterTool to filter results by relevance threshold...")
+
         self._add_trace_entry(state, "research", {
             "step": "retrieve",
-            "docs_found": len(state.get("research_results", [])),
-            "relevance_score": state.get("metadata", {}).get("relevance_score", 0),
-            "sources": [r.get("source", "") for r in state.get("research_results", [])][:3]
+            "docs_found": docs_found,
+            "relevance_score": relevance_score,
+            "sources": sources
         })
         return state
 
     def _code_node(self, state: AgentState) -> AgentState:
-        print("💻 Code generation starting...")
+        print("💻 CodeAgent: Starting code generation...")
+
+        research_results = state.get("research_results", [])
+        if research_results:
+            print(f"💻 CodeAgent: Using {len(research_results)} research results as context")
+            print("💻 CodeAgent: Using CodeGeneratorTool to create code based on documentation...")
+        else:
+            print("💻 CodeAgent: Generating code without specific documentation context")
+
         state = self.code_agent.process(state)
+
+        code_generated = bool(state.get("generated_code"))
+        has_context = state.get("metadata", {}).get("context_used", False)
+
+        if code_generated:
+            print("💻 CodeAgent: Code generation successful - applying LinterTool for validation...")
+            print("💻 CodeAgent: Code generation complete")
+        else:
+            print("💻 CodeAgent: Code generation failed or no code was needed")
+
         self._add_trace_entry(state, "code", {
             "step": "code_generation",
-            "code_generated": bool(state.get("generated_code")),
-            "has_context": state.get("metadata", {}).get("context_used", False)
+            "code_generated": code_generated,
+            "has_context": has_context
         })
         return state
 
     def _conversation_node(self, state: AgentState) -> AgentState:
+        print("💬 ConversationAgent: Starting conversational response generation...")
+
         state = self.conversation_agent.process(state)
+
+        conversation_type = state.get("metadata", {}).get("conversation_type", "general")
+
         self._add_trace_entry(state, "conversation", {
             "step": "conversation",
-            "type": state.get("metadata", {}).get("conversation_type", "general"),
+            "type": conversation_type,
             "rag_bypassed": True
         })
         return state
 
     def _presenter_node(self, state: AgentState) -> AgentState:
-        print("🎨 Presenter formatting final response...")
+        print("🎨 PresenterAgent: Starting final response formatting...")
+        print("🎨 PresenterAgent: Using TextFormatterTool to enhance presentation...")
 
-        # Get the response content from state
         response_content = state.get("final_response", "")
         metadata = state.get("metadata", {})
 
-        # Add agent information to metadata
-        metadata["agent_type"] = state.get("current_agent", "unknown")
+        if not response_content.strip():
+            if state.get("generated_code"):
+                response_content = state["generated_code"]
+                metadata["agent_type"] = "code"
+            elif state.get("research_results"):
+                research_results = state["research_results"]
+                if research_results:
+                    response_content = self._synthesize_research_response(research_results, state["user_query"])
+                    metadata["agent_type"] = "research"
+                else:
+                    response_content = "I couldn't find relevant information in the documentation."
+            else:
+                response_content = "I don't have enough information to provide a response."
+
+        metadata["agent_type"] = metadata.get("agent_type", state.get("current_agent", "unknown"))
         metadata["agents_used"] = state.get("agents_visited", [])
         metadata["intent"] = state.get("intent_classification", "")
 
-        # Add specific data based on agent type
         if state.get("research_results"):
             metadata["research_results"] = state["research_results"]
         if state.get("generated_code"):
             metadata["generated_code"] = state["generated_code"]
 
-        # Process through presenter
         presentation_result = self.presenter_agent.process(response_content, metadata)
 
-        # Update state with formatted response
         state["final_response"] = presentation_result["response"]
         state["metadata"]["presentation"] = presentation_result["metadata"]
         state["metadata"]["presentation_quality"] = presentation_result["presentation_quality"]
 
-        # Add trace entry
+        quality_level = presentation_result["presentation_quality"]["level"]
+        original_length = len(response_content)
+        final_length = len(presentation_result["response"])
+
+        print(f"🎨 PresenterAgent: Formatting complete - Quality: {quality_level}, Length: {original_length} → {final_length} chars")
+
         self._add_trace_entry(state, "presenter", {
             "step": "presentation",
-            "quality_level": presentation_result["presentation_quality"]["level"],
+            "quality_level": quality_level,
             "format_applied": True,
-            "original_length": len(response_content),
-            "final_length": len(presentation_result["response"])
+            "original_length": original_length,
+            "final_length": final_length
         })
 
         state["current_agent"] = "presenter"
@@ -141,6 +196,46 @@ class AgentGraph:
             state["agents_visited"].append("presenter")
 
         return state
+
+    def _synthesize_research_response(self, research_results: list, user_query: str) -> str:
+        if not research_results:
+            return "I couldn't find relevant information in the documentation."
+
+        content_parts = []
+        for result in research_results[:3]:
+            content = result.get('content', '').strip()
+            if content:
+                content_parts.append(content)
+
+        if not content_parts:
+            return "I found some documentation but couldn't extract useful information."
+
+        combined_content = "\n\n".join(content_parts)
+
+        try:
+            synthesis_prompt = f"""Based on the following documentation, provide a clear and comprehensive answer to the user's question.
+
+User Question: {user_query}
+
+Documentation:
+{combined_content}
+
+Please provide a well-structured, informative response that directly answers the user's question using the information from the documentation."""
+
+            messages = [{"role": "user", "content": synthesis_prompt}]
+
+            response = self.chatbot.client.chat.completions.create(
+                model=self.chatbot.config["model"]["name"],
+                messages=messages,
+                max_tokens=800,
+                temperature=0.2
+            )
+
+            return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            print(f"❌ Synthesis error: {e}")
+            return f"Based on the documentation:\n\n{combined_content[:500]}{'...' if len(combined_content) > 500 else ''}"
 
     def _route_decision(self, state: AgentState) -> str:
         target_agent = state.get("target_agent", "conversation_agent")

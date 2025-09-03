@@ -57,32 +57,6 @@ class CodeGeneratorTool(BaseTool):
         return without_code.strip()
 
 
-class CodeExecutorTool(BaseTool):
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.sandbox_enabled = config.get("agents", {}).get("code", {}).get("sandbox", False)
-
-    def execute(self, code: str, language: str = "python") -> Dict[str, Any]:
-        """Execute code in sandbox environment."""
-        if not self.sandbox_enabled:
-            return {
-                'executed': False,
-                'output': "Code execution disabled (sandbox not configured)",
-                'error': None,
-                'exit_code': -1
-            }
-
-        print("🐳 Docker sandbox execution not implemented yet")
-
-        return {
-            'executed': False,
-            'output': f"Sandbox execution for {language} code would run here:\n{code}",
-            'error': None,
-            'exit_code': 0,
-            'sandbox': 'docker'
-        }
-
-
 class LinterTool(BaseTool):
     def __init__(self, config: Dict[str, Any]):
         self.config = config

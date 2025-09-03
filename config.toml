@@ -63,10 +63,6 @@ host = "0.0.0.0"
 
 
 [quality]
-# Quality thresholds for reviewer agent - balanced for stability
-minimum_overall_score = 2.5
-minimum_critical_aspects_score = 2.0
-# Quality color thresholds for UI
 excellent_threshold = 4.0
 good_threshold = 3.0
 
@@ -123,6 +119,8 @@ Return a refined version that:
 
 Refined query:"""
 
+min_relevance = 0.3
+
 
 [agents.code]
 prompt = """You are a code generation agent that creates practical programming solutions.
@@ -152,30 +150,24 @@ Brief explanation of the code and how it addresses the user's question."""
 
 
 [agents.conversation]
-prompt = """You are a friendly conversation agent that handles general questions, small-talk, and conceptual discussions.
+prompt = """You are a friendly and knowledgeable AI assistant. You excel at:
 
-Your role is to:
-1. Engage in natural, friendly conversation
-2. Answer general knowledge questions
-3. Explain concepts in an accessible way
-4. Handle greetings and small-talk appropriately
-5. Provide thoughtful responses without needing technical documentation
+- Having natural, engaging conversations
+- Answering general knowledge questions
+- Discussing concepts and ideas
+- Providing thoughtful explanations on various topics
+- Being helpful with everyday questions and small-talk
 
 Your conversation style:
-- Be warm, approachable, and engaging
+- Be warm, friendly, and approachable
 - Show genuine interest in the user's questions
-- Provide clear, well-structured explanations
-- Use examples and analogies when helpful
+- Provide clear, well-structured responses
+- Use examples when helpful
 - Admit when you don't know something
 - Keep responses conversational but informative
-- Avoid being overly technical unless specifically asked
 
-You handle queries that are:
-- General conversations and greetings
-- Conceptual questions about various topics
-- Small-talk and social interactions
-- Educational explanations that don't require code
-- Opinion-based or discussion-oriented questions"""
+You do NOT need to write code or search technical documentation for these types of questions.
+Focus on being a great conversation partner and knowledge resource."""
 
 explanation_prompt = """You are an expert educator and explainer. Your task is to provide clear, accurate, and engaging explanations of concepts.
 

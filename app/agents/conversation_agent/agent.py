@@ -13,7 +13,7 @@ class ConversationAgent(BaseAgent):
 
     def process(self, state: AgentState) -> AgentState:
         try:
-            print(f"💬 Conversation agent processing: {state['user_query'][:50]}...")
+            print("💬 ConversationAgent: Using direct LLM call for natural conversation (bypassing RAG)")
 
             messages = self._build_conversation_context(state)
 
@@ -32,14 +32,15 @@ class ConversationAgent(BaseAgent):
             state["current_agent"] = "conversation"
             state["agents_visited"].append("conversation")
 
-            state["metadata"]["conversation_type"] = self._classify_conversation_type(state["user_query"])
+            conversation_type = self._classify_conversation_type(state["user_query"])
+            state["metadata"]["conversation_type"] = conversation_type
             state["metadata"]["rag_bypassed"] = True
             state["metadata"]["response_style"] = "conversational"
 
-            print(f"💬 Conversation response generated (quality: {state['quality_score']:.1f})")
+            print(f"💬 ConversationAgent: Response generated - Type: {conversation_type}, Quality: {state['quality_score']:.1f}")
 
         except Exception as e:
-            print(f"❌ Conversation agent error: {e}")
+            print(f"❌ ConversationAgent error: {e}")
             state["final_response"] = f"I apologize, but I encountered an error while processing your message: {e}"
             state["quality_score"] = 2.0
             state["feedback_loop"] = False
@@ -49,7 +50,7 @@ class ConversationAgent(BaseAgent):
     def _build_conversation_context(self, state: AgentState) -> list:
         messages = []
 
-        conversation_prompt = self._get_conversation_system_prompt()
+        conversation_prompt = self.prompt
         messages.append({"role": "system", "content": conversation_prompt})
 
         conversation_history = state.get("conversation_history", [])
@@ -60,26 +61,6 @@ class ConversationAgent(BaseAgent):
         messages.append({"role": "user", "content": state["user_query"]})
 
         return messages
-
-    def _get_conversation_system_prompt(self) -> str:
-        return """You are a friendly and knowledgeable AI assistant. You excel at:
-
-- Having natural, engaging conversations
-- Answering general knowledge questions
-- Discussing concepts and ideas
-- Providing thoughtful explanations on various topics
-- Being helpful with everyday questions and small-talk
-
-Your conversation style:
-- Be warm, friendly, and approachable
-- Show genuine interest in the user's questions
-- Provide clear, well-structured responses
-- Use examples when helpful
-- Admit when you don't know something
-- Keep responses conversational but informative
-
-You do NOT need to write code or search technical documentation for these types of questions.
-Focus on being a great conversation partner and knowledge resource."""
 
     def _classify_conversation_type(self, query: str) -> str:
         query_lower = query.lower()

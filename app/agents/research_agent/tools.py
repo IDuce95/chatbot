@@ -32,25 +32,6 @@ class VectorDBRetrieverTool(BaseTool):
             return []
 
 
-class WebSearchTool(BaseTool):
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-
-    def execute(self, query: str, max_results: int = 3) -> List[Dict[str, Any]]:
-        """Search the web for additional information."""
-        # Placeholder for future web search implementation
-        # Could integrate with services like DuckDuckGo, Google Custom Search, etc.
-        print(f"🌐 Web search not implemented yet for: {query}")
-        return [
-            {
-                'content': f"Web search results for '{query}' would appear here",
-                'metadata': {'source': 'web_search', 'url': 'https://example.com'},
-                'relevance_score': 0.8,
-                'source': 'web'
-            }
-        ]
-
-
 class KnowledgeFilterTool(BaseTool):
     def __init__(self, config: Dict[str, Any]):
         self.config = config

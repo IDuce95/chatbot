@@ -1,5 +1,6 @@
 from ..base_agent import BaseAgent
 from ..state import AgentState
+from .tools import VectorDBRetrieverTool, KnowledgeFilterTool
 
 
 class ResearchAgent(BaseAgent):
@@ -11,6 +12,9 @@ class ResearchAgent(BaseAgent):
         )
         self.config = config
         self.rag_manager = chatbot.rag_manager
+
+        self.vector_retriever = VectorDBRetrieverTool(chatbot, config)
+        self.knowledge_filter = KnowledgeFilterTool(config)
 
     def process(self, state: AgentState) -> AgentState:
         return self.conduct_research(state)
@@ -24,33 +28,62 @@ class ResearchAgent(BaseAgent):
             iteration_count = state.get("iteration_count", 0)
 
             if iteration_count > 0 and improvement_feedback:
-                print(f"🔄 Research retry with feedback: {improvement_feedback}")
+                print(f"🔄 ResearchAgent: Retry with feedback: {improvement_feedback}")
                 enhanced_query = self._enhance_query_with_feedback(user_query, improvement_feedback, quality_issues)
                 refined_query = self._refine_query(enhanced_query)
             else:
+                print("🔍 ResearchAgent: Refining search query...")
                 refined_query = self._refine_query(user_query)
+                print(f"🔍 ResearchAgent: Query refined to: '{refined_query[:60]}...'")
 
             if self.rag_manager:
+                print("📖 ResearchAgent: Using VectorDBRetrieverTool to search documentation...")
                 context_data = self.rag_manager.get_context_with_relevance(refined_query)
 
                 if context_data and len(context_data) > 0:
-                    research_results = self._process_retrieval_results(context_data, user_query)
+                    print(f"📖 ResearchAgent: Found {len(context_data)} raw documents from vector search")
+                    
+                    formatted_docs = []
+                    for item in context_data:
+                        if isinstance(item, dict) and 'content' in item:
+                            formatted_docs.append({
+                                'content': item['content'],
+                                'source': item.get('source', 'Unknown'),
+                                'relevance_score': item.get('relevance_score', 0.0)
+                            })
+                        elif isinstance(item, str):
+                            formatted_docs.append({
+                                'content': item,
+                                'source': 'Documentation',
+                                'relevance_score': 0.5
+                            })
+
+                    print("🧹 ResearchAgent: Using KnowledgeFilterTool to filter by relevance...")
+                    filtered_docs = self.knowledge_filter.execute(formatted_docs, user_query)
+                    print(f"🧹 ResearchAgent: Filtered to {len(filtered_docs)} relevant documents")
+
+                    research_results = self._process_filtered_results(filtered_docs)
                     relevance_score = self._evaluate_relevance(research_results, user_query)
 
                     state["research_results"] = research_results
                     state["metadata"]["relevance_score"] = relevance_score
                     state["metadata"]["refined_query"] = refined_query
                     state["metadata"]["num_sources"] = len(context_data)
+                    state["metadata"]["filtered_count"] = len(filtered_docs)
+                    
+                    print(f"📋 ResearchAgent: Research complete - Average relevance: {relevance_score:.2f}")
                 else:
+                    print("❌ ResearchAgent: No relevant documents found in vector database")
                     state["research_results"] = []
                     state["metadata"]["relevance_score"] = 0.0
                     state["metadata"]["no_relevant_docs"] = True
             else:
+                print("❌ ResearchAgent: RAG manager not available")
                 state["research_results"] = []
                 state["metadata"]["rag_unavailable"] = True
 
         except Exception as e:
-            print(f"Research error: {e}")
+            print(f"❌ ResearchAgent error: {e}")
             state["research_results"] = []
             state["metadata"]["research_error"] = str(e)
 
@@ -102,6 +135,19 @@ class ResearchAgent(BaseAgent):
                     'source': 'Documentation',
                     'relevance': 0.5
                 })
+
+        return processed_results
+
+    def _process_filtered_results(self, filtered_docs: list) -> list:
+        processed_results = []
+
+        for doc in filtered_docs:
+            processed_results.append({
+                'content': doc['content'],
+                'source': doc.get('source', 'Unknown'),
+                'relevance': doc.get('relevance_score', 0.0),
+                'rank': doc.get('rank', 0)
+            })
 
         return processed_results
 
