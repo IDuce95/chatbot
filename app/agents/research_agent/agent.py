@@ -42,7 +42,7 @@ class ResearchAgent(BaseAgent):
 
                 if context_data and len(context_data) > 0:
                     print(f"📖 ResearchAgent: Found {len(context_data)} raw documents from vector search")
-                    
+
                     formatted_docs = []
                     for item in context_data:
                         if isinstance(item, dict) and 'content' in item:
@@ -70,7 +70,7 @@ class ResearchAgent(BaseAgent):
                     state["metadata"]["refined_query"] = refined_query
                     state["metadata"]["num_sources"] = len(context_data)
                     state["metadata"]["filtered_count"] = len(filtered_docs)
-                    
+
                     print(f"📋 ResearchAgent: Research complete - Average relevance: {relevance_score:.2f}")
                 else:
                     print("❌ ResearchAgent: No relevant documents found in vector database")
