@@ -1,4 +1,4 @@
-.PHONY: run test streamlit api
+.PHONY: streamlit api docker test integration_test linting
 
 streamlit:
 	python -m streamlit run app/streamlit_app.py
@@ -12,6 +12,9 @@ docker:
 test:
 	python -m pytest tests/ -v
 
+integration_test:
+	python -m pytest tests/ -m integration -v
+
 linting:
-	- isort app/ tests/
-	- black app/ tests/
+	isort app/ tests/
+	black app/ tests/

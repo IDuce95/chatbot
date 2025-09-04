@@ -12,6 +12,7 @@ class ConversationAgent(BaseAgent):
         self.config = config
 
     def process(self, state: AgentState) -> AgentState:
+        state = self._update_state(state)
         try:
             print(
                 "ConversationAgent: Using direct LLM call for natural conversation (bypassing RAG)"
@@ -32,8 +33,6 @@ class ConversationAgent(BaseAgent):
             state["quality_score"] = self._assess_conversation_quality(
                 response_text, state["user_query"]
             )
-            state["current_agent"] = "conversation"
-            state["agents_visited"].append("conversation")
 
             state["metadata"]["rag_bypassed"] = True
             state["metadata"]["response_style"] = "conversational"

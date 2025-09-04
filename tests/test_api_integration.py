@@ -6,6 +6,7 @@ import requests
 from app.config_utils import get_api_config
 
 
+@pytest.mark.integration
 class TestAPIIntegration:
 
     @pytest.fixture
