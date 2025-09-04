@@ -239,7 +239,7 @@ Please provide a well-structured, informative response that directly answers the
 
         trace_entry = {
             "agent": agent_name,
-            "timestamp": __import__('time').time(),
+            "timestamp": time.time(),
             **trace_data
         }
         state["metadata"]["trace"].append(trace_entry)
