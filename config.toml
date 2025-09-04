@@ -119,7 +119,6 @@ Return a refined version that:
 
 Refined query:"""
 
-min_relevance = 0.3
 
 
 [agents.code]

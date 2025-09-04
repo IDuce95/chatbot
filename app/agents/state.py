@@ -12,7 +12,6 @@ class AgentState(TypedDict):
     generated_code: Optional[str]
     final_response: str
     quality_score: float
-    feedback_loop: bool
     metadata: Dict[str, Any]
 
     current_agent: str

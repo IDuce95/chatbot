@@ -24,8 +24,8 @@ class CodeGeneratorTool(BaseTool):
             response = self.chatbot.client.chat.completions.create(
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
-                max_tokens=2000,
-                temperature=0.3
+                max_tokens=self.config['agent_parameters']['code_generation_max_tokens'],
+                temperature=self.config['agent_parameters']['code_generation_temperature']
             )
 
             generated_code = response.choices[0].message.content.strip()
@@ -59,7 +59,7 @@ class CodeGeneratorTool(BaseTool):
 
 class LinterTool(BaseTool):
     def __init__(self, config: Dict[str, Any]):
-        self.config = config
+        pass
 
     def execute(self, code: str, language: str = "python") -> Dict[str, Any]:
         issues = []

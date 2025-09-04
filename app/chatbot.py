@@ -28,7 +28,6 @@ class ChatBot:
         if use_rag:
             try:
                 self.rag_manager = RAGManager()
-                self.model_info += " (with RAG knowledge base)"
             except Exception as e:
                 print(f"Warning: Could not initialize RAG manager: {e}")
                 self.use_rag = False
@@ -39,8 +38,7 @@ class ChatBot:
             from .agents.agent_graph import AgentGraph
             self.agent_graph = AgentGraph(self, self.config)
             self.use_agents = True
-            self.model_info += " + Multi-Agent System"
-            print("✅ Multi-Agent System initialized successfully!")
+            print("Multi-Agent System initialized successfully!")
         except Exception as e:
             print(f"Warning: Could not initialize Agent Graph: {e}")
             self.use_agents = False
@@ -75,8 +73,7 @@ class ChatBot:
 
             self.last_rag_used = "research" in agents_used
 
-            print(f"🤖 Agents used: {agents_used} | Intent: {intent} | Quality: {quality_score:.2f}")
-
+            print(f"Agents used: {' --> '.join(agent for agent in agents_used)} | Intent: {intent}")
             return response_text
 
         except Exception as e:

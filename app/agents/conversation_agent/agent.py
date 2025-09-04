@@ -13,7 +13,7 @@ class ConversationAgent(BaseAgent):
 
     def process(self, state: AgentState) -> AgentState:
         try:
-            print("💬 ConversationAgent: Using direct LLM call for natural conversation (bypassing RAG)")
+            print("ConversationAgent: Using direct LLM call for natural conversation (bypassing RAG)")
 
             messages = self._build_conversation_context(state)
 
@@ -28,22 +28,18 @@ class ConversationAgent(BaseAgent):
 
             state["final_response"] = response_text
             state["quality_score"] = self._assess_conversation_quality(response_text, state["user_query"])
-            state["feedback_loop"] = False
             state["current_agent"] = "conversation"
             state["agents_visited"].append("conversation")
 
-            conversation_type = self._classify_conversation_type(state["user_query"])
-            state["metadata"]["conversation_type"] = conversation_type
             state["metadata"]["rag_bypassed"] = True
             state["metadata"]["response_style"] = "conversational"
 
-            print(f"💬 ConversationAgent: Response generated - Type: {conversation_type}, Quality: {state['quality_score']:.1f}")
+            print(f"ConversationAgent: Response generated - Quality: {state['quality_score']:.1f}")
 
         except Exception as e:
             print(f"❌ ConversationAgent error: {e}")
             state["final_response"] = f"I apologize, but I encountered an error while processing your message: {e}"
             state["quality_score"] = 2.0
-            state["feedback_loop"] = False
 
         return state
 
@@ -61,23 +57,6 @@ class ConversationAgent(BaseAgent):
         messages.append({"role": "user", "content": state["user_query"]})
 
         return messages
-
-    def _classify_conversation_type(self, query: str) -> str:
-        query_lower = query.lower()
-
-        small_talk_keywords = ["hello", "hi", "how are you", "what's up", "good morning", "good evening"]
-        if any(keyword in query_lower for keyword in small_talk_keywords):
-            return "small_talk"
-
-        question_keywords = ["what is", "what are", "why", "how does", "explain", "tell me about"]
-        if any(keyword in query_lower for keyword in question_keywords):
-            return "conceptual_question"
-
-        discussion_keywords = ["think", "opinion", "believe", "feel", "discuss"]
-        if any(keyword in query_lower for keyword in discussion_keywords):
-            return "discussion"
-
-        return "general_conversation"
 
     def _assess_conversation_quality(self, response: str, query: str) -> float:
         quality_score = 4.0
