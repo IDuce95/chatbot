@@ -24,7 +24,7 @@ class CodeGeneratorTool(BaseTool):
             response = self.chatbot.client.chat.completions.create(
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
-                max_tokens=2000,
+                max_tokens=self.config['agent_parameters']['code_generation_max_tokens'],
                 temperature=0.3
             )
 
