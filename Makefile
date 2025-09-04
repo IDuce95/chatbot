@@ -11,3 +11,7 @@ docker:
 
 test:
 	python -m pytest tests/ -v
+
+linting:
+	- isort app/ tests/
+	- black app/ tests/
