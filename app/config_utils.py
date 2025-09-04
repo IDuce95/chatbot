@@ -1,6 +1,7 @@
-import toml
 import os
-from typing import Dict, Any
+from typing import Any, Dict
+
+import toml
 
 
 def load_config(config_path: str = "config.toml") -> Dict[str, Any]:

@@ -1,8 +1,9 @@
-import pytest
 from unittest.mock import Mock
 
-from app.agents.router_agent.tools import ClassifierTool, DelegationTool
+import pytest
+
 from app.agents.presenter_agent.tools import TextFormatterTool
+from app.agents.router_agent.tools import ClassifierTool, DelegationTool
 from app.pydantic_models import RouterDecision
 
 

@@ -2,13 +2,8 @@ from fastapi import FastAPI, HTTPException
 
 from .chatbot import ChatBot
 from .config_utils import get_api_config
-from .pydantic_models import (
-    MessageRequest,
-    MessageResponse,
-    HistoryResponse,
-    StatusResponse,
-    MetricsResponse,
-)
+from .pydantic_models import (HistoryResponse, MessageRequest, MessageResponse,
+                              MetricsResponse, StatusResponse)
 
 api_config = get_api_config()
 

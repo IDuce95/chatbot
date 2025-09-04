@@ -1,6 +1,6 @@
+from ...pydantic_models import RouterDecision
 from ..base_agent import BaseAgent
 from ..state import AgentState
-from ...pydantic_models import RouterDecision
 from .tools import ClassifierTool, DelegationTool
 
 

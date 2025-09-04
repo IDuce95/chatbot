@@ -1,6 +1,7 @@
-import pytest
 import time
 from unittest.mock import Mock, patch
+
+import pytest
 
 from app.chatbot import ChatBot
 

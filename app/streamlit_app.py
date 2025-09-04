@@ -12,7 +12,6 @@ sys.path.insert(0, current_dir)
 
 from config_utils import get_api_config, get_quality_config
 
-
 api_config = get_api_config()
 quality_config = get_quality_config()
 
