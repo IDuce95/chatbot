@@ -15,37 +15,40 @@ class PresenterAgent(BaseAgent):
 
     def _initialize_tools(self):
         from .tools import TextFormatterTool
+
         self.text_formatter = TextFormatterTool(self)
 
-    def process(self, agent_response: str, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    def process(
+        self, agent_response: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
         if metadata is None:
             metadata = {}
 
         try:
             metadata = self._enrich_metadata(agent_response, metadata)
             formatted_response = self.text_formatter.process(agent_response, metadata)
-            presentation_quality = self._assess_presentation_quality(formatted_response, metadata)
+            presentation_quality = self._assess_presentation_quality(
+                formatted_response, metadata
+            )
 
             return {
                 "response": formatted_response,
                 "metadata": metadata,
-                "presentation_quality": presentation_quality
+                "presentation_quality": presentation_quality,
             }
 
         except Exception as e:
             logger.error(f"Presenter processing error: {e}")
-            return {
-                "response": agent_response,
-                "metadata": metadata,
-                "error": str(e)
-            }
+            return {"response": agent_response, "metadata": metadata, "error": str(e)}
 
-    def _enrich_metadata(self, content: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _enrich_metadata(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
         enriched = metadata.copy()
 
         enriched["response_length"] = len(content)
         enriched["word_count"] = len(content.split())
-        enriched["line_count"] = len(content.split('\n'))
+        enriched["line_count"] = len(content.split("\n"))
 
         if "```" in content:
             enriched["contains_code"] = True
@@ -53,7 +56,9 @@ class PresenterAgent(BaseAgent):
 
         return enriched
 
-    def _assess_presentation_quality(self, content: str, metadata: Dict[str, Any]) -> Dict[str, Any]:
+    def _assess_presentation_quality(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> Dict[str, Any]:
         quality_score = 0.5
         factors = []
 
@@ -76,7 +81,7 @@ class PresenterAgent(BaseAgent):
         return {
             "score": quality_score,
             "level": self._get_quality_level(quality_score),
-            "factors": factors
+            "factors": factors,
         }
 
     def _get_quality_level(self, score: float) -> str:

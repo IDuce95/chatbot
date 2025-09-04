@@ -14,18 +14,13 @@ def get_api_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
     if config is None:
         config = load_config()
 
-    return config.get("api", {
-        "base_url": "http://localhost:8000",
-        "port": 8000,
-        "host": "0.0.0.0"
-    })
+    return config.get(
+        "api", {"base_url": "http://localhost:8000", "port": 8000, "host": "0.0.0.0"}
+    )
 
 
 def get_quality_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
     if config is None:
         config = load_config()
 
-    return config.get("quality", {
-        "excellent_threshold": 4.0,
-        "good_threshold": 3.0
-    })
+    return config.get("quality", {"excellent_threshold": 4.0, "good_threshold": 3.0})

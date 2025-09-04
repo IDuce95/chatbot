@@ -15,20 +15,24 @@ class BaseAgent(ABC):
     def process(self, state: AgentState) -> AgentState:
         pass
 
-    def _call_llm(self, messages: list, max_tokens: int = 500, temperature: float = 0.1) -> str:
+    def _call_llm(
+        self, messages: list, max_tokens: int = 500, temperature: float = 0.1
+    ) -> str:
         try:
             response = self.chatbot.client.chat.completions.create(
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
                 max_tokens=max_tokens,
-                temperature=temperature
+                temperature=temperature,
             )
             return response.choices[0].message.content.strip()
         except Exception as e:
             logging.error("Exception in _call_llm: %s", e, exc_info=True)
             return "An error occurred while processing your request."
 
-    def _format_conversation_context(self, conversation_history: list, max_messages: int = 6) -> str:
+    def _format_conversation_context(
+        self, conversation_history: list, max_messages: int = 6
+    ) -> str:
         if not conversation_history:
             return ""
 
@@ -46,11 +50,18 @@ class BaseAgent(ABC):
 
         return "\n".join(context_lines)
 
-    def _call_llm_with_context(self, state: AgentState, system_prompt: str,
-                               max_tokens: int = 500, temperature: float = 0.1) -> str:
+    def _call_llm_with_context(
+        self,
+        state: AgentState,
+        system_prompt: str,
+        max_tokens: int = 500,
+        temperature: float = 0.1,
+    ) -> str:
         messages = [{"role": "system", "content": system_prompt}]
 
-        conversation_context = self._format_conversation_context(state.get("conversation_history", []))
+        conversation_context = self._format_conversation_context(
+            state.get("conversation_history", [])
+        )
         if conversation_context:
             context_message = f"Previous conversation context:\n{conversation_context}\n\nCurrent question: {state['user_query']}"
             messages.append({"role": "user", "content": context_message})

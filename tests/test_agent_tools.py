@@ -15,49 +15,58 @@ class TestAgentTools:
                     "model": {"name": "gpt-4o-mini"},
                     "agent_parameters": {
                         "classification_max_tokens": 200,
-                        "classification_temperature": 0.1
-                    }
+                        "classification_temperature": 0.1,
+                    },
                 }
                 self.client = None
+
         return MockChatbot()
 
     @pytest.fixture
     def mock_config(self):
         return {
             "agents": {
-                "router": {
-                    "prompt": "You are a router agent."
-                },
-                "research": {
-                    "min_relevance": 0.3
-                }
+                "router": {"prompt": "You are a router agent."},
+                "research": {"min_relevance": 0.3},
             },
             "agent_parameters": {
                 "classification_max_tokens": 200,
-                "classification_temperature": 0.1
+                "classification_temperature": 0.1,
             },
             "keyword_classification": {
                 "code_keywords": ["function", "code", "implement", "write", "create"],
-                "documentation_keywords": ["documentation", "docs", "langchain", "explain", "what is"],
-                "conversation_keywords": ["hello", "hi", "thanks", "how are you"]
-            }
+                "documentation_keywords": [
+                    "documentation",
+                    "docs",
+                    "langchain",
+                    "explain",
+                    "what is",
+                ],
+                "conversation_keywords": ["hello", "hi", "thanks", "how are you"],
+            },
         }
 
-    def test_classifier_tool_keyword_classification_code(self, mock_chatbot, mock_config):
+    def test_classifier_tool_keyword_classification_code(
+        self, mock_chatbot, mock_config
+    ):
         classifier = ClassifierTool(mock_chatbot, mock_config)
         result = classifier._classify_by_keywords("Write a function to sort data")
 
         assert result.intent == "CODE"
         assert result.confidence == 0.8
 
-    def test_classifier_tool_keyword_classification_documentation(self, mock_chatbot, mock_config):
+    def test_classifier_tool_keyword_classification_documentation(
+        self, mock_chatbot, mock_config
+    ):
         classifier = ClassifierTool(mock_chatbot, mock_config)
         result = classifier._classify_by_keywords("What is LangChain documentation?")
 
         assert result.intent == "DOCUMENTATION"
         assert result.confidence == 0.8
 
-    def test_classifier_tool_keyword_classification_conversation(self, mock_chatbot, mock_config):
+    def test_classifier_tool_keyword_classification_conversation(
+        self, mock_chatbot, mock_config
+    ):
         classifier = ClassifierTool(mock_chatbot, mock_config)
         result = classifier._classify_by_keywords("Hello, how are you?")
 
@@ -146,7 +155,7 @@ class TestAgentTools:
         research_content = "This is research content about programming."
         metadata = {
             "agent_type": "research",
-            "sources": ["source1.pdf", "source2.pdf", "source3.pdf"]
+            "sources": ["source1.pdf", "source2.pdf", "source3.pdf"],
         }
 
         result = formatter.process(research_content, metadata)

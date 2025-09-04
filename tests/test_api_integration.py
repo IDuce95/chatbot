@@ -44,7 +44,7 @@ class TestAPIIntegration:
             f"{api_base_url}/chat",
             json={"message": test_message},
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=30,
         )
         elapsed_time = time.time() - start_time
 
@@ -80,9 +80,7 @@ class TestAPIIntegration:
 
         start_time = time.time()
         response = requests.post(
-            f"{api_base_url}/chat",
-            json={"message": test_message},
-            timeout=15
+            f"{api_base_url}/chat", json={"message": test_message}, timeout=15
         )
         elapsed_time = time.time() - start_time
 
@@ -93,7 +91,7 @@ class TestAPIIntegration:
         response = requests.post(
             f"{api_base_url}/chat",
             json={"message": ""},
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json"},
         )
 
         assert response.status_code == 200

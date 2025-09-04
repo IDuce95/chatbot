@@ -22,26 +22,26 @@ class TestMultiAgentSystem:
                 "router": {"prompt": "Test router prompt"},
                 "research": {
                     "prompt": "Test research prompt",
-                    "query_refinement": "Refine this query: {query}"
+                    "query_refinement": "Refine this query: {query}",
                 },
                 "code": {
                     "prompt": "Test code prompt",
-                    "code_generation_template": "Generate code based on the query and context."
+                    "code_generation_template": "Generate code based on the query and context.",
                 },
                 "conversation": {"prompt": "Test conversation prompt"},
-                "presenter": {"prompt": "Test presenter prompt"}
+                "presenter": {"prompt": "Test presenter prompt"},
             },
             "agent_parameters": {
                 "classification_max_tokens": 200,
                 "classification_temperature": 0.1,
                 "conversation_max_tokens": 800,
-                "conversation_temperature": 0.7
+                "conversation_temperature": 0.7,
             },
             "keyword_classification": {
                 "code_keywords": ["function", "code", "implement"],
                 "documentation_keywords": ["langchain", "documentation", "explain"],
-                "conversation_keywords": ["hello", "hi", "thanks"]
-            }
+                "conversation_keywords": ["hello", "hi", "thanks"],
+            },
         }
 
     def test_router_agent_classification_code(self, chatbot, mock_config):
@@ -65,7 +65,7 @@ class TestMultiAgentSystem:
         state = {
             "user_query": "What is LangChain documentation?",
             "metadata": {},
-            "agents_visited": []
+            "agents_visited": [],
         }
 
         result = router.process(state)
@@ -80,7 +80,7 @@ class TestMultiAgentSystem:
         state = {
             "user_query": "Hello, how are you?",
             "metadata": {},
-            "agents_visited": []
+            "agents_visited": [],
         }
 
         result = router.process(state)
@@ -114,7 +114,7 @@ class TestMultiAgentSystem:
         state = {
             "user_query": "What is machine learning?",
             "metadata": {},
-            "agents_visited": []
+            "agents_visited": [],
         }
 
         result = research_agent.process(state)
@@ -132,11 +132,11 @@ class TestMultiAgentSystem:
                 {
                     "content": "Python sorting can be done with sorted() function",
                     "source": "test_doc",
-                    "relevance": 0.8
+                    "relevance": 0.8,
                 }
             ],
             "metadata": {},
-            "agents_visited": []
+            "agents_visited": [],
         }
 
         result = code_agent.process(state)
@@ -172,7 +172,9 @@ class TestMultiAgentSystem:
         assert isinstance(response, str)
 
     def test_end_to_end_code_flow(self, chatbot):
-        response = chatbot.get_response_with_agents("Write a simple hello world function")
+        response = chatbot.get_response_with_agents(
+            "Write a simple hello world function"
+        )
 
         assert response is not None
         assert len(response) > 0
@@ -187,7 +189,7 @@ class TestMultiAgentSystem:
         test_queries = [
             "Hello",
             "What is programming?",
-            "Write a function to add two numbers"
+            "Write a function to add two numbers",
         ]
 
         for query in test_queries:
@@ -199,17 +201,9 @@ class TestMultiAgentSystem:
             assert not response.startswith("Error:")
 
     def test_agent_routing_consistency(self, chatbot):
-        conversation_queries = [
-            "Hello there",
-            "Hi, how are you?",
-            "Good morning!"
-        ]
+        conversation_queries = ["Hello there", "Hi, how are you?", "Good morning!"]
 
-        code_queries = [
-            "Write a function",
-            "Create a class",
-            "Implement an algorithm"
-        ]
+        code_queries = ["Write a function", "Create a class", "Implement an algorithm"]
 
         for query in conversation_queries:
             response = chatbot.get_response_with_agents(query)
@@ -225,7 +219,7 @@ class TestMultiAgentSystem:
             "What is Python?",
             "Write a sorting function",
             "Explain machine learning",
-            "Create a web server"
+            "Create a web server",
         ]
 
         total_time = 0

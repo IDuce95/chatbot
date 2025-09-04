@@ -20,7 +20,9 @@ class ChatBot:
 
         self.client = openai.OpenAI(api_key=self.api_key)
         self.conversation_history: List[Dict[str, str]] = []
-        self.model_info = f"CodeBot initialized with model: {self.config['model']['name']}"
+        self.model_info = (
+            f"CodeBot initialized with model: {self.config['model']['name']}"
+        )
         self.last_rag_used = False
 
         self.use_rag = use_rag
@@ -36,6 +38,7 @@ class ChatBot:
         self.use_agents = False
         try:
             from .agents.agent_graph import AgentGraph
+
             self.agent_graph = AgentGraph(self, self.config)
             self.use_agents = True
             print("Multi-Agent System initialized successfully!")
@@ -45,13 +48,17 @@ class ChatBot:
 
     def get_response(self, user_message: str) -> Optional[str]:
         if not self.use_agents or not self.agent_graph:
-            raise RuntimeError("Agent system not available. Please ensure proper initialization.")
+            raise RuntimeError(
+                "Agent system not available. Please ensure proper initialization."
+            )
 
         return self.get_response_with_agents(user_message)
 
     def get_response_with_agents(self, user_message: str) -> Optional[str]:
         try:
-            result = self.agent_graph.process_query(user_message, self.conversation_history)
+            result = self.agent_graph.process_query(
+                user_message, self.conversation_history
+            )
 
             response_text = result.get("response", "")
             agents_used = result.get("agents_used", [])
@@ -60,7 +67,9 @@ class ChatBot:
             research_results = result.get("research_results", [])
 
             self.conversation_history.append({"role": "user", "content": user_message})
-            self.conversation_history.append({"role": "assistant", "content": response_text})
+            self.conversation_history.append(
+                {"role": "assistant", "content": response_text}
+            )
 
             self._last_agents_used = agents_used
             self._last_intent = intent
@@ -73,7 +82,9 @@ class ChatBot:
 
             self.last_rag_used = "research" in agents_used
 
-            print(f"Agents used: {' --> '.join(agent for agent in agents_used)} | Intent: {intent}")
+            print(
+                f"Agents used: {' --> '.join(agent for agent in agents_used)} | Intent: {intent}"
+            )
             return response_text
 
         except Exception as e:

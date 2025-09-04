@@ -42,7 +42,9 @@ class RAGManager:
             elif self.vectorstore_type == "faiss":
                 self.setup_faiss()
             else:
-                raise ValueError(f"Unsupported vectorstore type: {self.vectorstore_type}")
+                raise ValueError(
+                    f"Unsupported vectorstore type: {self.vectorstore_type}"
+                )
         except Exception as e:
             print(f"Error setting up vectorstore: {e}")
             raise
@@ -51,8 +53,7 @@ class RAGManager:
         try:
             if os.path.exists(self.db_path):
                 self.vectorstore = Chroma(
-                    persist_directory=self.db_path,
-                    embedding_function=self.embeddings
+                    persist_directory=self.db_path, embedding_function=self.embeddings
                 )
                 print(f"Loaded existing ChromaDB from {self.db_path}")
             else:
@@ -69,7 +70,7 @@ class RAGManager:
                 self.vectorstore = FAISS.load_local(
                     self.faiss_path,
                     self.embeddings,
-                    allow_dangerous_deserialization=True
+                    allow_dangerous_deserialization=True,
                 )
                 print(f"Loaded existing FAISS index from {self.faiss_path}")
             else:
@@ -83,17 +84,17 @@ class RAGManager:
         import os
         from pathlib import Path
 
-        env_path = Path(__file__).parent.parent / '.env'
+        env_path = Path(__file__).parent.parent / ".env"
         if env_path.exists():
-            with open(env_path, 'r') as f:
+            with open(env_path, "r") as f:
                 for line in f:
-                    if line.strip() and not line.startswith('#'):
-                        key, value = line.strip().split('=', 1)
+                    if line.strip() and not line.startswith("#"):
+                        key, value = line.strip().split("=", 1)
                         os.environ[key] = value
 
     def load_pdf_documents(self) -> List[Document]:
         documents = []
-        pdf_files = [f for f in os.listdir(self.docs_path) if f.endswith('.pdf')]
+        pdf_files = [f for f in os.listdir(self.docs_path) if f.endswith(".pdf")]
 
         print(f"Loading {len(pdf_files)} PDF files...")
 
@@ -104,8 +105,8 @@ class RAGManager:
                 docs = loader.load()
 
                 for doc in docs:
-                    doc.metadata['source_file'] = pdf_file
-                    doc.metadata['file_type'] = 'pdf'
+                    doc.metadata["source_file"] = pdf_file
+                    doc.metadata["file_type"] = "pdf"
 
                 documents.extend(docs)
                 print(f"Loaded {len(docs)} pages from {pdf_file}")
@@ -135,15 +136,14 @@ class RAGManager:
             self.vectorstore = Chroma.from_documents(
                 documents=chunks,
                 embedding=self.embeddings,
-                persist_directory=self.db_path
+                persist_directory=self.db_path,
             )
             print(f"ChromaDB saved to {self.db_path}")
 
         elif self.vectorstore_type == "faiss":
             print("Creating embeddings and populating FAISS...")
             self.vectorstore = FAISS.from_documents(
-                documents=chunks,
-                embedding=self.embeddings
+                documents=chunks, embedding=self.embeddings
             )
             self.vectorstore.save_local(self.faiss_path)
             print(f"FAISS index saved to {self.faiss_path}")
@@ -180,11 +180,11 @@ class RAGManager:
             retrieved_docs = []
             for i, (doc, distance) in enumerate(results):
                 doc_info = {
-                    'id': f"{doc.metadata.get('source_file', 'unknown')}_{i}",
-                    'content': doc.page_content,
-                    'metadata': doc.metadata,
-                    'score': 1.0 - distance,
-                    'distance': distance
+                    "id": f"{doc.metadata.get('source_file', 'unknown')}_{i}",
+                    "content": doc.page_content,
+                    "metadata": doc.metadata,
+                    "score": 1.0 - distance,
+                    "distance": distance,
                 }
                 retrieved_docs.append(doc_info)
 
@@ -195,7 +195,9 @@ class RAGManager:
             print(f"Error searching documents with scores: {e}")
             return []
 
-    def get_context_with_relevance(self, query: str, k: int = None, max_distance: float = 0.4):
+    def get_context_with_relevance(
+        self, query: str, k: int = None, max_distance: float = 0.4
+    ):
         if k is None:
             k = self.max_retrieved_docs
 
@@ -208,11 +210,11 @@ class RAGManager:
 
         for i, (doc, distance) in enumerate(results):
             doc_info = {
-                'id': f"{doc.metadata.get('source_file', 'unknown')}_{i}",
-                'content': doc.page_content,
-                'metadata': doc.metadata,
-                'score': 1.0 - distance,
-                'distance': distance
+                "id": f"{doc.metadata.get('source_file', 'unknown')}_{i}",
+                "content": doc.page_content,
+                "metadata": doc.metadata,
+                "score": 1.0 - distance,
+                "distance": distance,
             }
             retrieved_docs_info.append(doc_info)
 
@@ -225,7 +227,7 @@ class RAGManager:
         context_parts = []
         source_files = []
         for i, doc in enumerate(relevant_docs, 1):
-            source = doc.metadata.get('source_file', 'unknown')
+            source = doc.metadata.get("source_file", "unknown")
             source_files.append(source)
             content = doc.page_content.strip()
             context_parts.append(f"[Doc {i} - {source}]\n{content}")
@@ -250,11 +252,7 @@ class RAGManager:
         try:
             collection = self.vectorstore._collection
             count = collection.count()
-            return {
-                "status": "ready",
-                "documents": count,
-                "db_path": self.db_path
-            }
+            return {"status": "ready", "documents": count, "db_path": self.db_path}
         except Exception as e:
             return {"status": "error", "error": str(e)}
 

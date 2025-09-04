@@ -15,7 +15,7 @@ class ClassifierTool(BaseTool):
 
         messages = [
             {"role": "system", "content": classification_prompt},
-            {"role": "user", "content": query}
+            {"role": "user", "content": query},
         ]
 
         try:
@@ -23,7 +23,9 @@ class ClassifierTool(BaseTool):
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
                 max_tokens=self.config["agent_parameters"]["classification_max_tokens"],
-                temperature=self.config["agent_parameters"]["classification_temperature"]
+                temperature=self.config["agent_parameters"][
+                    "classification_temperature"
+                ],
             )
 
             content = response.choices[0].message.content.strip()
@@ -32,7 +34,7 @@ class ClassifierTool(BaseTool):
                 result = json.loads(content)
                 return RouterDecision(
                     intent=result.get("intent", "GENERAL"),
-                    confidence=float(result.get("confidence", 0.75))
+                    confidence=float(result.get("confidence", 0.75)),
                 )
             except (json.JSONDecodeError, KeyError, ValueError):
                 return self._classify_by_keywords(query)
@@ -68,10 +70,15 @@ class DelegationTool(BaseTool):
         self.agent_mapping = {
             "CODE": "code_agent",
             "DOCUMENTATION": "research_agent",
-            "GENERAL": "conversation_agent"
+            "GENERAL": "conversation_agent",
         }
 
-    def execute(self, decision: RouterDecision, query: str, conversation_history: List[Dict] = None) -> Dict[str, Any]:
+    def execute(
+        self,
+        decision: RouterDecision,
+        query: str,
+        conversation_history: List[Dict] = None,
+    ) -> Dict[str, Any]:
         target_agent = self.agent_mapping.get(decision.intent, "conversation_agent")
 
         delegation_info = {
@@ -83,8 +90,10 @@ class DelegationTool(BaseTool):
             "routing_metadata": {
                 "router_decision": decision.intent,
                 "confidence_level": self._get_confidence_level(decision.confidence),
-                "fallback_options": self._get_fallback_options(decision.intent, decision.confidence)
-            }
+                "fallback_options": self._get_fallback_options(
+                    decision.intent, decision.confidence
+                ),
+            },
         }
 
         return delegation_info

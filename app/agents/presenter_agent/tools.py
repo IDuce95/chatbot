@@ -35,12 +35,15 @@ class TextFormatterTool:
 
     def _format_code_response(self, content: str) -> str:
         if "def " in content and "```" not in content:
-            lines = content.split('\n')
+            lines = content.split("\n")
             code_started = False
             formatted_lines = []
 
             for line in lines:
-                if any(keyword in line for keyword in ["def ", "class ", "import ", "from "]):
+                if any(
+                    keyword in line
+                    for keyword in ["def ", "class ", "import ", "from "]
+                ):
                     if not code_started:
                         formatted_lines.append("```python")
                         code_started = True
@@ -56,7 +59,7 @@ class TextFormatterTool:
             if code_started:
                 formatted_lines.append("```")
 
-            return '\n'.join(formatted_lines)
+            return "\n".join(formatted_lines)
 
         return content
 

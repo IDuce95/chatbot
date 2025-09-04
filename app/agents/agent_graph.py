@@ -39,19 +39,13 @@ class AgentGraph:
         workflow.add_conditional_edges(
             "router",
             self._route_decision,
-            {
-                "research": "research",
-                "conversation": "conversation"
-            }
+            {"research": "research", "conversation": "conversation"},
         )
 
         workflow.add_conditional_edges(
             "research",
             self._after_research_decision,
-            {
-                "code": "code",
-                "presenter": "presenter"
-            }
+            {"code": "code", "presenter": "presenter"},
         )
 
         workflow.add_edge("code", "presenter")
@@ -62,15 +56,21 @@ class AgentGraph:
         return workflow.compile()
 
     def _router_node(self, state: AgentState) -> AgentState:
-        print(f"RouterAgent: Starting classification for query: '{state['user_query'][:80]}'")
+        print(
+            f"RouterAgent: Starting classification for query: '{state['user_query'][:80]}'"
+        )
         state = self.router_agent.process(state)
 
-        self._add_trace_entry(state, "router", {
-            "step": "classification",
-            "intent": state.get("intent_classification", ""),
-            "confidence": state.get("metadata", {}).get("router_confidence", 0),
-            "target_agent": state.get("target_agent", "")
-        })
+        self._add_trace_entry(
+            state,
+            "router",
+            {
+                "step": "classification",
+                "intent": state.get("intent_classification", ""),
+                "confidence": state.get("metadata", {}).get("router_confidence", 0),
+                "target_agent": state.get("target_agent", ""),
+            },
+        )
         return state
 
     def _research_node(self, state: AgentState) -> AgentState:
@@ -80,20 +80,28 @@ class AgentGraph:
         relevance_score = state.get("metadata", {}).get("relevance_score", 0)
         source_files = state.get("metadata", {}).get("source_files", [])
 
-        print(f"ResearchAgent: Search complete - Found {num_sources} source documents, Relevance score: {relevance_score:.2f}")
+        print(
+            f"ResearchAgent: Search complete - Found {num_sources} source documents, Relevance score: {relevance_score:.2f}"
+        )
         if source_files:
-            unique_sources = list(dict.fromkeys([f.replace('.pdf', '') for f in source_files]))[:3]
+            unique_sources = list(
+                dict.fromkeys([f.replace(".pdf", "") for f in source_files])
+            )[:3]
             if len(unique_sources) == 1:
                 print(f"ResearchAgent: All sources from: {unique_sources[0]}")
             else:
                 print(f"ResearchAgent: Top sources: {', '.join(unique_sources)}")
 
-        self._add_trace_entry(state, "research", {
-            "step": "retrieve",
-            "docs_found": num_sources,
-            "relevance_score": relevance_score,
-            "sources": source_files[:3]
-        })
+        self._add_trace_entry(
+            state,
+            "research",
+            {
+                "step": "retrieve",
+                "docs_found": num_sources,
+                "relevance_score": relevance_score,
+                "sources": source_files[:3],
+            },
+        )
         return state
 
     def _code_node(self, state: AgentState) -> AgentState:
@@ -102,11 +110,15 @@ class AgentGraph:
         code_generated = bool(state.get("generated_code"))
         has_context = state.get("metadata", {}).get("context_used", False)
 
-        self._add_trace_entry(state, "code", {
-            "step": "code_generation",
-            "code_generated": code_generated,
-            "has_context": has_context
-        })
+        self._add_trace_entry(
+            state,
+            "code",
+            {
+                "step": "code_generation",
+                "code_generated": code_generated,
+                "has_context": has_context,
+            },
+        )
         return state
 
     def _conversation_node(self, state: AgentState) -> AgentState:
@@ -114,10 +126,9 @@ class AgentGraph:
 
         state = self.conversation_agent.process(state)
 
-        self._add_trace_entry(state, "conversation", {
-            "step": "conversation",
-            "rag_bypassed": True
-        })
+        self._add_trace_entry(
+            state, "conversation", {"step": "conversation", "rag_bypassed": True}
+        )
         return state
 
     def _presenter_node(self, state: AgentState) -> AgentState:
@@ -134,14 +145,22 @@ class AgentGraph:
             elif state.get("research_results"):
                 research_results = state["research_results"]
                 if research_results:
-                    response_content = self._synthesize_research_response(research_results, state["user_query"])
+                    response_content = self._synthesize_research_response(
+                        research_results, state["user_query"]
+                    )
                     metadata["agent_type"] = "research"
                 else:
-                    response_content = "I couldn't find relevant information in the documentation."
+                    response_content = (
+                        "I couldn't find relevant information in the documentation."
+                    )
             else:
-                response_content = "I don't have enough information to provide a response."
+                response_content = (
+                    "I don't have enough information to provide a response."
+                )
 
-        metadata["agent_type"] = metadata.get("agent_type", state.get("current_agent", "unknown"))
+        metadata["agent_type"] = metadata.get(
+            "agent_type", state.get("current_agent", "unknown")
+        )
         metadata["agents_used"] = state.get("agents_visited", [])
         metadata["intent"] = state.get("intent_classification", "")
 
@@ -154,21 +173,29 @@ class AgentGraph:
 
         state["final_response"] = presentation_result["response"]
         state["metadata"]["presentation"] = presentation_result["metadata"]
-        state["metadata"]["presentation_quality"] = presentation_result["presentation_quality"]
+        state["metadata"]["presentation_quality"] = presentation_result[
+            "presentation_quality"
+        ]
 
         quality_level = presentation_result["presentation_quality"]["level"]
         original_length = len(response_content)
         final_length = len(presentation_result["response"])
 
-        print(f"PresenterAgent: Formatting complete - Quality: {quality_level}, Length: {original_length} → {final_length} chars")
+        print(
+            f"PresenterAgent: Formatting complete - Quality: {quality_level}, Length: {original_length} → {final_length} chars"
+        )
 
-        self._add_trace_entry(state, "presenter", {
-            "step": "presentation",
-            "quality_level": quality_level,
-            "format_applied": True,
-            "original_length": original_length,
-            "final_length": final_length
-        })
+        self._add_trace_entry(
+            state,
+            "presenter",
+            {
+                "step": "presentation",
+                "quality_level": quality_level,
+                "format_applied": True,
+                "original_length": original_length,
+                "final_length": final_length,
+            },
+        )
 
         state["current_agent"] = "presenter"
         if "presenter" not in state["agents_visited"]:
@@ -176,13 +203,15 @@ class AgentGraph:
 
         return state
 
-    def _synthesize_research_response(self, research_results: list, user_query: str) -> str:
+    def _synthesize_research_response(
+        self, research_results: list, user_query: str
+    ) -> str:
         if not research_results:
             return "I couldn't find relevant information in the documentation."
 
         content_parts = []
         for result in research_results[:3]:
-            content = result.get('content', '').strip()
+            content = result.get("content", "").strip()
             if content:
                 content_parts.append(content)
 
@@ -207,7 +236,7 @@ Please provide a well-structured, informative response that directly answers the
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
                 max_tokens=800,
-                temperature=0.2
+                temperature=0.2,
             )
 
             return response.choices[0].message.content.strip()
@@ -237,14 +266,12 @@ Please provide a well-structured, informative response that directly answers the
         if "trace" not in state["metadata"]:
             state["metadata"]["trace"] = []
 
-        trace_entry = {
-            "agent": agent_name,
-            "timestamp": time.time(),
-            **trace_data
-        }
+        trace_entry = {"agent": agent_name, "timestamp": time.time(), **trace_data}
         state["metadata"]["trace"].append(trace_entry)
 
-    def initialize_state(self, user_query: str, conversation_history: List[dict] = None) -> AgentState:
+    def initialize_state(
+        self, user_query: str, conversation_history: List[dict] = None
+    ) -> AgentState:
         return {
             "user_query": user_query,
             "conversation_history": conversation_history or [],
@@ -256,10 +283,12 @@ Please provide a well-structured, informative response that directly answers the
             "quality_score": 0.0,
             "metadata": {"trace": []},
             "current_agent": "",
-            "agents_visited": []
+            "agents_visited": [],
         }
 
-    def process_query(self, user_query: str, conversation_history: List[dict] = None) -> dict:
+    def process_query(
+        self, user_query: str, conversation_history: List[dict] = None
+    ) -> dict:
         start_time = time.time()
         initial_state = self.initialize_state(user_query, conversation_history)
 
@@ -269,8 +298,8 @@ Please provide a well-structured, informative response that directly answers the
             response_time = end_time - start_time
             response = final_state["final_response"]
 
-            if hasattr(self.chatbot, 'rag_manager') and self.chatbot.rag_manager:
-                rag_used = "research" in final_state['agents_visited']
+            if hasattr(self.chatbot, "rag_manager") and self.chatbot.rag_manager:
+                rag_used = "research" in final_state["agents_visited"]
 
                 retrieved_docs = []
                 if rag_used and final_state.get("research_results"):
@@ -278,7 +307,13 @@ Please provide a well-structured, informative response that directly answers the
 
                 context = ""
                 if retrieved_docs:
-                    context = "\n".join([doc.get('content', '') for doc in retrieved_docs if isinstance(doc, dict)])
+                    context = "\n".join(
+                        [
+                            doc.get("content", "")
+                            for doc in retrieved_docs
+                            if isinstance(doc, dict)
+                        ]
+                    )
 
                 try:
                     self.chatbot.rag_manager.metrics.log_interaction(
@@ -288,7 +323,7 @@ Please provide a well-structured, informative response that directly answers the
                         context=context,
                         response_time=response_time,
                         rag_used=rag_used,
-                        quality_score=final_state.get("quality_score", 0.0)
+                        quality_score=final_state.get("quality_score", 0.0),
                     )
                 except Exception as e:
                     print(f"Warning: Failed to log metrics: {e}")
@@ -301,7 +336,9 @@ Please provide a well-structured, informative response that directly answers the
                 "research_results": final_state.get("research_results", []),
                 "metadata": final_state["metadata"],
                 "trace": final_state["metadata"].get("trace", []),
-                "presentation_quality": final_state["metadata"].get("presentation_quality", {})
+                "presentation_quality": final_state["metadata"].get(
+                    "presentation_quality", {}
+                ),
             }
 
         except Exception as e:
@@ -309,9 +346,11 @@ Please provide a well-structured, informative response that directly answers the
             response_time = end_time - start_time
             print(f"❌ Graph execution error: {e}")
 
-            error_response = f"I'm sorry, I encountered an error processing your request: {e}"
+            error_response = (
+                f"I'm sorry, I encountered an error processing your request: {e}"
+            )
 
-            if hasattr(self.chatbot, 'rag_manager') and self.chatbot.rag_manager:
+            if hasattr(self.chatbot, "rag_manager") and self.chatbot.rag_manager:
                 try:
                     self.chatbot.rag_manager.metrics.log_interaction(
                         query=user_query,
@@ -320,7 +359,7 @@ Please provide a well-structured, informative response that directly answers the
                         context="",
                         response_time=response_time,
                         rag_used=False,
-                        quality_score=0.0
+                        quality_score=0.0,
                     )
                 except Exception as log_error:
                     print(f"Warning: Failed to log error metrics: {log_error}")
@@ -330,5 +369,5 @@ Please provide a well-structured, informative response that directly answers the
                 "quality_score": 0.0,
                 "agents_used": ["error"],
                 "intent": "error",
-                "metadata": {"error": str(e)}
+                "metadata": {"error": str(e)},
             }
