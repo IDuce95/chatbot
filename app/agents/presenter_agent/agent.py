@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Any, Optional
-from app.agents.base_agent import BaseAgent
+from ..base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
