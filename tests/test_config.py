@@ -1,10 +1,6 @@
-import sys
-import os
 import pytest
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
-
-from config_utils import get_api_config, get_quality_config
+from app.config_utils import get_api_config, get_quality_config
 
 
 class TestConfiguration:

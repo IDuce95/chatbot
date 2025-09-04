@@ -1,11 +1,8 @@
-import os
-import sys
 import time
 import pytest
 import requests
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'app'))
-from config_utils import get_api_config
+from app.config_utils import get_api_config
 
 
 class TestAPIIntegration:

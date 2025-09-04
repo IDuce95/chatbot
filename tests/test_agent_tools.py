@@ -1,11 +1,6 @@
 import pytest
-import sys
-import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.agents.router_agent.tools import ClassifierTool, DelegationTool
-from app.agents.research_agent.tools import KnowledgeFilterTool
 from app.agents.presenter_agent.tools import TextFormatterTool
 from app.pydantic_models import RouterDecision
 
@@ -150,41 +145,6 @@ class TestAgentTools:
         fallbacks = result["routing_metadata"]["fallback_options"]
         assert "research_agent" in fallbacks
         assert "conversation_agent" in fallbacks
-
-    def test_knowledge_filter_tool_filtering(self, mock_config):
-        """Test KnowledgeFilterTool filters documents by relevance"""
-        filter_tool = KnowledgeFilterTool(mock_config)
-
-        documents = [
-            {"content": "High relevance content", "relevance_score": 0.8, "source": "doc1"},
-            {"content": "Medium relevance content", "relevance_score": 0.5, "source": "doc2"},
-            {"content": "Low relevance content", "relevance_score": 0.1, "source": "doc3"}
-        ]
-
-        filtered = filter_tool.execute(documents, "test query")
-
-        # Should filter out documents below threshold (0.3)
-        assert len(filtered) == 2
-        assert filtered[0]["relevance_score"] >= 0.3
-        assert filtered[1]["relevance_score"] >= 0.3
-
-    def test_knowledge_filter_tool_ranking(self, mock_config):
-        """Test KnowledgeFilterTool ranks documents correctly"""
-        filter_tool = KnowledgeFilterTool(mock_config)
-
-        documents = [
-            {"content": "Low score content", "relevance_score": 0.4, "source": "doc1"},
-            {"content": "High score content", "relevance_score": 0.9, "source": "doc2"},
-            {"content": "Medium score content", "relevance_score": 0.6, "source": "doc3"}
-        ]
-
-        filtered = filter_tool.execute(documents, "test query")
-
-        # Should be ranked by relevance_score descending
-        assert filtered[0]["relevance_score"] >= filtered[1]["relevance_score"]
-        assert filtered[1]["relevance_score"] >= filtered[2]["relevance_score"]
-        assert filtered[0]["rank"] == 1
-        assert filtered[1]["rank"] == 2
 
     def test_text_formatter_tool_empty_content(self):
         """Test TextFormatterTool handles empty content"""

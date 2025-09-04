@@ -1,9 +1,4 @@
-import os
-import sys
-
 import pytest
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.agents.code_agent.agent import CodeAgent
 from app.agents.conversation_agent.agent import ConversationAgent
