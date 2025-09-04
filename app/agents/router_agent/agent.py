@@ -23,12 +23,12 @@ class RouterAgent(BaseAgent):
         user_query = state["user_query"]
 
         try:
-            print("🎯 RouterAgent: Using ClassifierTool to determine intent...")
+            print("RouterAgent: Using ClassifierTool to determine intent...")
 
             decision = self._classify_intent(state)
 
-            print(f"🎯 RouterAgent: Intent classified as: {decision.intent} (confidence: {decision.confidence:.2f})")
-            print("🎯 RouterAgent: Using DelegationTool to determine target agent...")
+            print(f"RouterAgent: Intent classified as: {decision.intent} (confidence: {decision.confidence:.2f})")
+            print("RouterAgent: Using DelegationTool to determine target agent...")
 
             delegation_info = self.delegator.execute(
                 decision,
@@ -40,8 +40,6 @@ class RouterAgent(BaseAgent):
             state["target_agent"] = delegation_info["target_agent"]
             state["metadata"]["router_confidence"] = decision.confidence
             state["metadata"]["routing_info"] = delegation_info["routing_metadata"]
-
-            print(f"🎯 RouterAgent: Delegating to: {delegation_info['target_agent']}")
 
         except Exception as e:
             print(f"❌ RouterAgent error: {e}")

@@ -43,6 +43,7 @@
 ## Agents Description
 
 ### 1. Router Agent
+
 **Purpose**: Entry point that analyzes user queries and routes them to appropriate specialized agents.
 
 **Tools**:
@@ -60,10 +61,7 @@
 
 **Purpose**: Specializes in finding and filtering relevant documentation using RAG (Retrieval-Augmented Generation).
 
-**Tools**:
-
-- `VectorDBRetrieverTool`: Searches FAISS vector database for relevant documentation
-- `KnowledgeFilterTool`: Filters and ranks results by relevance threshold
+**Tools**: Uses RAG Manager directly for vector database search
 
 **Knowledge Base**: 146+ LangChain documentation PDFs processed into 1516 chunks with embeddings
 

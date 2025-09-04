@@ -1,3 +1,4 @@
+import time
 from typing import List
 
 from langgraph.graph import END, StateGraph
@@ -61,10 +62,8 @@ class AgentGraph:
         return workflow.compile()
 
     def _router_node(self, state: AgentState) -> AgentState:
-        print(f"🎯 RouterAgent: Starting classification for query: '{state['user_query'][:80]}...'")
+        print(f"RouterAgent: Starting classification for query: '{state['user_query'][:80]}'")
         state = self.router_agent.process(state)
-
-        print(f"🎯 RouterAgent: Classification complete - Intent: {state.get('intent_classification', '')}, Confidence: {state.get('metadata', {}).get('router_confidence', 0):.2f}, Target: {state.get('target_agent', '')}")
 
         self._add_trace_entry(state, "router", {
             "step": "classification",
@@ -75,50 +74,33 @@ class AgentGraph:
         return state
 
     def _research_node(self, state: AgentState) -> AgentState:
-        print(f"📚 ResearchAgent: Starting documentation search for intent: {state['intent_classification']}")
-        print("📚 ResearchAgent: Using VectorDBRetrieverTool to search knowledge base...")
-
         state = self.research_agent.process(state)
 
-        docs_found = len(state.get("research_results", []))
+        num_sources = state.get("metadata", {}).get("num_sources", 0)
         relevance_score = state.get("metadata", {}).get("relevance_score", 0)
-        sources = [r.get("source", "") for r in state.get("research_results", [])][:3]
+        source_files = state.get("metadata", {}).get("source_files", [])
 
-        print(f"📚 ResearchAgent: Search complete - Found {docs_found} relevant documents, Relevance score: {relevance_score:.2f}")
-        if sources:
-            print(f"📚 ResearchAgent: Top sources: {', '.join(sources)}")
-
-        if docs_found > 0:
-            print("📚 ResearchAgent: Using KnowledgeFilterTool to filter results by relevance threshold...")
+        print(f"ResearchAgent: Search complete - Found {num_sources} source documents, Relevance score: {relevance_score:.2f}")
+        if source_files:
+            unique_sources = list(dict.fromkeys([f.replace('.pdf', '') for f in source_files]))[:3]
+            if len(unique_sources) == 1:
+                print(f"ResearchAgent: All sources from: {unique_sources[0]}")
+            else:
+                print(f"ResearchAgent: Top sources: {', '.join(unique_sources)}")
 
         self._add_trace_entry(state, "research", {
             "step": "retrieve",
-            "docs_found": docs_found,
+            "docs_found": num_sources,
             "relevance_score": relevance_score,
-            "sources": sources
+            "sources": source_files[:3]
         })
         return state
 
     def _code_node(self, state: AgentState) -> AgentState:
-        print("💻 CodeAgent: Starting code generation...")
-
-        research_results = state.get("research_results", [])
-        if research_results:
-            print(f"💻 CodeAgent: Using {len(research_results)} research results as context")
-            print("💻 CodeAgent: Using CodeGeneratorTool to create code based on documentation...")
-        else:
-            print("💻 CodeAgent: Generating code without specific documentation context")
-
         state = self.code_agent.process(state)
 
         code_generated = bool(state.get("generated_code"))
         has_context = state.get("metadata", {}).get("context_used", False)
-
-        if code_generated:
-            print("💻 CodeAgent: Code generation successful - applying LinterTool for validation...")
-            print("💻 CodeAgent: Code generation complete")
-        else:
-            print("💻 CodeAgent: Code generation failed or no code was needed")
 
         self._add_trace_entry(state, "code", {
             "step": "code_generation",
@@ -128,22 +110,19 @@ class AgentGraph:
         return state
 
     def _conversation_node(self, state: AgentState) -> AgentState:
-        print("💬 ConversationAgent: Starting conversational response generation...")
+        print("ConversationAgent: Starting conversational response generation...")
 
         state = self.conversation_agent.process(state)
 
-        conversation_type = state.get("metadata", {}).get("conversation_type", "general")
-
         self._add_trace_entry(state, "conversation", {
             "step": "conversation",
-            "type": conversation_type,
             "rag_bypassed": True
         })
         return state
 
     def _presenter_node(self, state: AgentState) -> AgentState:
-        print("🎨 PresenterAgent: Starting final response formatting...")
-        print("🎨 PresenterAgent: Using TextFormatterTool to enhance presentation...")
+        print("PresenterAgent: Starting final response formatting...")
+        print("PresenterAgent: Using TextFormatterTool to enhance presentation...")
 
         response_content = state.get("final_response", "")
         metadata = state.get("metadata", {})
@@ -181,7 +160,7 @@ class AgentGraph:
         original_length = len(response_content)
         final_length = len(presentation_result["response"])
 
-        print(f"🎨 PresenterAgent: Formatting complete - Quality: {quality_level}, Length: {original_length} → {final_length} chars")
+        print(f"PresenterAgent: Formatting complete - Quality: {quality_level}, Length: {original_length} → {final_length} chars")
 
         self._add_trace_entry(state, "presenter", {
             "step": "presentation",
@@ -281,9 +260,6 @@ Please provide a well-structured, informative response that directly answers the
         }
 
     def process_query(self, user_query: str, conversation_history: List[dict] = None) -> dict:
-        import time
-        print(f"\n🚀 Starting agent processing for: {user_query}")
-
         start_time = time.time()
         initial_state = self.initialize_state(user_query, conversation_history)
 
@@ -291,9 +267,6 @@ Please provide a well-structured, informative response that directly answers the
             final_state = self.graph.invoke(initial_state)
             end_time = time.time()
             response_time = end_time - start_time
-
-            print(f"✅ Processing complete. Agents visited: {final_state['agents_visited']}")
-
             response = final_state["final_response"]
 
             if hasattr(self.chatbot, 'rag_manager') and self.chatbot.rag_manager:

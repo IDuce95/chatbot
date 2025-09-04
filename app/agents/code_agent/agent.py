@@ -40,24 +40,28 @@ Documentation Context:
         research_results = state.get("research_results", [])
 
         try:
-            print("🔧 CodeAgent: Using CodeGeneratorTool to create code solution...")
+            print("CodeAgent: Using CodeGeneratorTool to create code solution...")
             context = self._format_research_context(research_results)
 
             if research_results:
-                print(f"🔧 CodeAgent: Using {len(research_results)} research results as context for code generation")
+                num_sources = state.get("metadata", {}).get("num_sources", 0)
+                if num_sources > 0:
+                    print(f"CodeAgent: Using context from {num_sources} source documents for code generation")
+                else:
+                    print("CodeAgent: Using research context for code generation")
             else:
-                print("🔧 CodeAgent: Generating code without specific documentation context")
+                print("CodeAgent: Generating code without specific documentation context")
 
             code_response = self._generate_code_with_context(state, context)
 
-            print("🔧 CodeAgent: Applying LinterTool for code formatting and validation...")
+            print("CodeAgent: Applying LinterTool for code formatting and validation...")
             formatted_code = self._format_and_validate_code(code_response)
 
             state["generated_code"] = formatted_code
             state["metadata"]["code_generated"] = True
             state["metadata"]["context_used"] = len(research_results) > 0
 
-            print("✅ CodeAgent: Code generation and validation complete")
+            print("CodeAgent: Code generation and validation complete")
 
         except Exception as e:
             print(f"❌ CodeAgent error: {e}")

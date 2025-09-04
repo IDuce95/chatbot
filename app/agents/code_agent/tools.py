@@ -59,7 +59,7 @@ class CodeGeneratorTool(BaseTool):
 
 class LinterTool(BaseTool):
     def __init__(self, config: Dict[str, Any]):
-        self.config = config
+        pass
 
     def execute(self, code: str, language: str = "python") -> Dict[str, Any]:
         issues = []

@@ -1,6 +1,5 @@
 from ..base_agent import BaseAgent
 from ..state import AgentState
-from .tools import VectorDBRetrieverTool, KnowledgeFilterTool
 
 
 class ResearchAgent(BaseAgent):
@@ -12,9 +11,6 @@ class ResearchAgent(BaseAgent):
         )
         self.config = config
         self.rag_manager = chatbot.rag_manager
-
-        self.vector_retriever = VectorDBRetrieverTool(chatbot, config)
-        self.knowledge_filter = KnowledgeFilterTool(config)
 
     def process(self, state: AgentState) -> AgentState:
         return self.conduct_research(state)
@@ -28,50 +24,35 @@ class ResearchAgent(BaseAgent):
             iteration_count = state.get("iteration_count", 0)
 
             if iteration_count > 0 and improvement_feedback:
-                print(f"🔄 ResearchAgent: Retry with feedback: {improvement_feedback}")
+                print(f"ResearchAgent: Retry with feedback: {improvement_feedback}")
                 enhanced_query = self._enhance_query_with_feedback(user_query, improvement_feedback, quality_issues)
                 refined_query = self._refine_query(enhanced_query)
             else:
-                print("🔍 ResearchAgent: Refining search query...")
+                print("ResearchAgent: Refining search query...")
                 refined_query = self._refine_query(user_query)
-                print(f"🔍 ResearchAgent: Query refined to: '{refined_query[:60]}...'")
+                print(f"ResearchAgent: Query refined to: '{refined_query[:60]}...'")
 
             if self.rag_manager:
-                print("📖 ResearchAgent: Using VectorDBRetrieverTool to search documentation...")
-                context_data = self.rag_manager.get_context_with_relevance(refined_query)
+                print("ResearchAgent: Searching documentation with RAG manager...")
+                context, has_relevant_docs, num_sources, source_files = self.rag_manager.get_context_with_relevance(refined_query)
 
-                if context_data and len(context_data) > 0:
-                    print(f"📖 ResearchAgent: Found {len(context_data)} raw documents from vector search")
-                    
-                    formatted_docs = []
-                    for item in context_data:
-                        if isinstance(item, dict) and 'content' in item:
-                            formatted_docs.append({
-                                'content': item['content'],
-                                'source': item.get('source', 'Unknown'),
-                                'relevance_score': item.get('relevance_score', 0.0)
-                            })
-                        elif isinstance(item, str):
-                            formatted_docs.append({
-                                'content': item,
-                                'source': 'Documentation',
-                                'relevance_score': 0.5
-                            })
+                if has_relevant_docs and context:
+                    print(f"ResearchAgent: Found relevant context from {num_sources} sources")
 
-                    print("🧹 ResearchAgent: Using KnowledgeFilterTool to filter by relevance...")
-                    filtered_docs = self.knowledge_filter.execute(formatted_docs, user_query)
-                    print(f"🧹 ResearchAgent: Filtered to {len(filtered_docs)} relevant documents")
+                    research_results = [{
+                        'content': context,
+                        'source': 'Documentation',
+                        'relevance': 0.8,
+                        'rank': 1
+                    }]
 
-                    research_results = self._process_filtered_results(filtered_docs)
-                    relevance_score = self._evaluate_relevance(research_results, user_query)
+                    relevance_score = self._evaluate_relevance(research_results)
 
                     state["research_results"] = research_results
                     state["metadata"]["relevance_score"] = relevance_score
                     state["metadata"]["refined_query"] = refined_query
-                    state["metadata"]["num_sources"] = len(context_data)
-                    state["metadata"]["filtered_count"] = len(filtered_docs)
-                    
-                    print(f"📋 ResearchAgent: Research complete - Average relevance: {relevance_score:.2f}")
+                    state["metadata"]["num_sources"] = num_sources
+                    state["metadata"]["source_files"] = source_files
                 else:
                     print("❌ ResearchAgent: No relevant documents found in vector database")
                     state["research_results"] = []
@@ -119,39 +100,7 @@ class ResearchAgent(BaseAgent):
         except Exception:
             return query
 
-    def _process_retrieval_results(self, context_data: list, original_query: str) -> list:
-        processed_results = []
-
-        for item in context_data[:5]:
-            if isinstance(item, dict) and 'content' in item:
-                processed_results.append({
-                    'content': item['content'],
-                    'source': item.get('source', 'Unknown'),
-                    'relevance': item.get('relevance_score', 0.0)
-                })
-            elif isinstance(item, str):
-                processed_results.append({
-                    'content': item,
-                    'source': 'Documentation',
-                    'relevance': 0.5
-                })
-
-        return processed_results
-
-    def _process_filtered_results(self, filtered_docs: list) -> list:
-        processed_results = []
-
-        for doc in filtered_docs:
-            processed_results.append({
-                'content': doc['content'],
-                'source': doc.get('source', 'Unknown'),
-                'relevance': doc.get('relevance_score', 0.0),
-                'rank': doc.get('rank', 0)
-            })
-
-        return processed_results
-
-    def _evaluate_relevance(self, results: list, query: str) -> float:
+    def _evaluate_relevance(self, results: list) -> float:
         if not results:
             return 0.0
 

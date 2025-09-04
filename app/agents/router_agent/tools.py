@@ -1,3 +1,4 @@
+import json
 from typing import Any, Dict, List
 
 from ...pydantic_models import RouterDecision
@@ -27,7 +28,6 @@ class ClassifierTool(BaseTool):
 
             content = response.choices[0].message.content.strip()
 
-            import json
             try:
                 result = json.loads(content)
                 return RouterDecision(
