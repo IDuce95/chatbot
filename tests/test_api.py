@@ -1,8 +1,4 @@
-import sys
-import os
 from fastapi.testclient import TestClient
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.api_server import app
 

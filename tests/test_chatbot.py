@@ -1,10 +1,6 @@
 import pytest
-import sys
-import os
 import time
 from unittest.mock import Mock, patch
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from app.chatbot import ChatBot
 
