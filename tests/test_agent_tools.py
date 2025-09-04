@@ -1,4 +1,5 @@
 import pytest
+from unittest.mock import Mock
 
 from app.agents.router_agent.tools import ClassifierTool, DelegationTool
 from app.agents.presenter_agent.tools import TextFormatterTool
@@ -43,49 +44,35 @@ class TestAgentTools:
         }
 
     def test_classifier_tool_keyword_classification_code(self, mock_chatbot, mock_config):
-        """Test ClassifierTool keyword-based classification for CODE queries"""
         classifier = ClassifierTool(mock_chatbot, mock_config)
-
-        # Test CODE keywords
         result = classifier._classify_by_keywords("Write a function to sort data")
 
         assert result.intent == "CODE"
         assert result.confidence == 0.8
 
     def test_classifier_tool_keyword_classification_documentation(self, mock_chatbot, mock_config):
-        """Test ClassifierTool keyword-based classification for DOCUMENTATION queries"""
         classifier = ClassifierTool(mock_chatbot, mock_config)
-
-        # Test DOCUMENTATION keywords
         result = classifier._classify_by_keywords("What is LangChain documentation?")
 
         assert result.intent == "DOCUMENTATION"
         assert result.confidence == 0.8
 
     def test_classifier_tool_keyword_classification_conversation(self, mock_chatbot, mock_config):
-        """Test ClassifierTool keyword-based classification for GENERAL queries"""
         classifier = ClassifierTool(mock_chatbot, mock_config)
-
-        # Test CONVERSATION keywords
         result = classifier._classify_by_keywords("Hello, how are you?")
 
         assert result.intent == "GENERAL"
         assert result.confidence == 0.8
 
     def test_classifier_tool_fallback_classification(self, mock_chatbot, mock_config):
-        """Test ClassifierTool fallback for unknown queries"""
         classifier = ClassifierTool(mock_chatbot, mock_config)
-
-        # Test query with no matching keywords
         result = classifier._classify_by_keywords("Random unclassifiable text xyz")
 
         assert result.intent == "GENERAL"
         assert result.confidence == 0.6
 
     def test_delegation_tool_code_mapping(self, mock_chatbot, mock_config):
-        """Test DelegationTool maps CODE intent correctly"""
         delegator = DelegationTool(mock_chatbot, mock_config)
-
         decision = RouterDecision(intent="CODE", confidence=0.9)
         result = delegator.execute(decision, "Write a function", [])
 
@@ -94,9 +81,7 @@ class TestAgentTools:
         assert result["confidence"] == 0.9
 
     def test_delegation_tool_documentation_mapping(self, mock_chatbot, mock_config):
-        """Test DelegationTool maps DOCUMENTATION intent correctly"""
         delegator = DelegationTool(mock_chatbot, mock_config)
-
         decision = RouterDecision(intent="DOCUMENTATION", confidence=0.85)
         result = delegator.execute(decision, "What is LangChain?", [])
 
@@ -105,9 +90,7 @@ class TestAgentTools:
         assert result["confidence"] == 0.85
 
     def test_delegation_tool_general_mapping(self, mock_chatbot, mock_config):
-        """Test DelegationTool maps GENERAL intent correctly"""
         delegator = DelegationTool(mock_chatbot, mock_config)
-
         decision = RouterDecision(intent="GENERAL", confidence=0.75)
         result = delegator.execute(decision, "Hello there", [])
 
@@ -116,29 +99,22 @@ class TestAgentTools:
         assert result["confidence"] == 0.75
 
     def test_delegation_tool_confidence_levels(self, mock_chatbot, mock_config):
-        """Test DelegationTool confidence level categorization"""
         delegator = DelegationTool(mock_chatbot, mock_config)
 
-        # Test high confidence
         decision_high = RouterDecision(intent="CODE", confidence=0.95)
         result_high = delegator.execute(decision_high, "test", [])
         assert result_high["routing_metadata"]["confidence_level"] == "very_high"
 
-        # Test medium confidence
         decision_medium = RouterDecision(intent="CODE", confidence=0.65)
         result_medium = delegator.execute(decision_medium, "test", [])
         assert result_medium["routing_metadata"]["confidence_level"] == "medium"
 
-        # Test low confidence
         decision_low = RouterDecision(intent="CODE", confidence=0.45)
         result_low = delegator.execute(decision_low, "test", [])
         assert result_low["routing_metadata"]["confidence_level"] == "low"
 
     def test_delegation_tool_fallback_options(self, mock_chatbot, mock_config):
-        """Test DelegationTool generates fallback options for low confidence"""
         delegator = DelegationTool(mock_chatbot, mock_config)
-
-        # Test low confidence CODE intent
         decision = RouterDecision(intent="CODE", confidence=0.4)
         result = delegator.execute(decision, "test", [])
 
@@ -147,21 +123,15 @@ class TestAgentTools:
         assert "conversation_agent" in fallbacks
 
     def test_text_formatter_tool_empty_content(self):
-        """Test TextFormatterTool handles empty content"""
-        class MockAgent:
-            pass
-
-        formatter = TextFormatterTool(MockAgent())
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
         result = formatter.process("", {})
 
         assert result == "I don't have a specific answer for that question."
 
     def test_text_formatter_tool_code_formatting(self):
-        """Test TextFormatterTool formats code correctly"""
-        class MockAgent:
-            pass
-
-        formatter = TextFormatterTool(MockAgent())
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
         code_content = "def hello():\n    print('Hello World')"
 
         result = formatter.process(code_content, {"agent_type": "code"})
@@ -171,11 +141,8 @@ class TestAgentTools:
         assert "```" in result
 
     def test_text_formatter_tool_research_formatting(self):
-        """Test TextFormatterTool formats research responses with sources"""
-        class MockAgent:
-            pass
-
-        formatter = TextFormatterTool(MockAgent())
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
         research_content = "This is research content about programming."
         metadata = {
             "agent_type": "research",
@@ -190,29 +157,21 @@ class TestAgentTools:
         assert "source2.pdf" in result
 
     def test_text_formatter_tool_conversation_formatting(self):
-        """Test TextFormatterTool formats conversation responses"""
-        class MockAgent:
-            pass
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
 
-        formatter = TextFormatterTool(MockAgent())
-
-        # Test short response
         short_response = "Hi!"
         result_short = formatter.process(short_response, {"agent_type": "conversation"})
         assert "✨ Hi!" in result_short
 
-        # Test longer response
         long_response = "Hello there, how can I help you today?"
         result_long = formatter.process(long_response, {"agent_type": "conversation"})
-        assert result_long == long_response  # Should not add emoji for longer responses
+        assert result_long == long_response
 
     def test_text_formatter_tool_truncation(self):
-        """Test TextFormatterTool truncates very long content"""
-        class MockAgent:
-            pass
-
-        formatter = TextFormatterTool(MockAgent())
-        long_content = "x" * 6000  # Content longer than 5000 characters
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
+        long_content = "x" * 6000
 
         result = formatter.process(long_content, {})
 
@@ -220,15 +179,10 @@ class TestAgentTools:
         assert "*[Response truncated for readability]*" in result
 
     def test_text_formatter_tool_error_handling(self):
-        """Test TextFormatterTool handles formatting errors gracefully"""
-        class MockAgent:
-            pass
+        mock_agent = Mock()
+        formatter = TextFormatterTool(mock_agent)
 
-        formatter = TextFormatterTool(MockAgent())
-
-        # Simulate error by passing invalid metadata
         content = "Test content"
 
-        # Should not raise exception and return original content
         result = formatter.process(content, {})
         assert result == content
