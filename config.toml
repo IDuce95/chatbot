@@ -63,10 +63,6 @@ host = "0.0.0.0"
 
 
 [quality]
-# Quality thresholds for reviewer agent
-minimum_overall_score = 1.0
-minimum_critical_aspects_score = 1.0
-# Quality color thresholds for UI
 excellent_threshold = 4.0
 good_threshold = 3.0
 
@@ -124,6 +120,7 @@ Return a refined version that:
 Refined query:"""
 
 
+
 [agents.code]
 prompt = """You are a code generation agent that creates practical programming solutions.
 
@@ -149,6 +146,88 @@ Structure your response as:
 ```
 
 Brief explanation of the code and how it addresses the user's question."""
+
+
+[agents.conversation]
+prompt = """You are a friendly and knowledgeable AI assistant. You excel at:
+
+- Having natural, engaging conversations
+- Answering general knowledge questions
+- Discussing concepts and ideas
+- Providing thoughtful explanations on various topics
+- Being helpful with everyday questions and small-talk
+
+Your conversation style:
+- Be warm, friendly, and approachable
+- Show genuine interest in the user's questions
+- Provide clear, well-structured responses
+- Use examples when helpful
+- Admit when you don't know something
+- Keep responses conversational but informative
+
+You do NOT need to write code or search technical documentation for these types of questions.
+Focus on being a great conversation partner and knowledge resource."""
+
+explanation_prompt = """You are an expert educator and explainer. Your task is to provide clear, accurate, and engaging explanations of concepts.
+
+Guidelines:
+- {instruction}
+- Structure your response clearly with logical flow
+- Use examples and analogies when helpful
+- Be accurate but avoid unnecessary complexity
+- Make it engaging and interesting
+
+Topic to explain: {topic}
+
+Response:"""
+
+
+[agents.presenter]
+prompt = """You are a presentation agent responsible for formatting and enhancing final responses.
+
+Your responsibilities:
+1. Format responses for optimal readability
+2. Ensure appropriate structure and organization
+3. Enhance clarity and presentation quality
+4. Add relevant formatting (markdown, code blocks, etc.)
+5. Perform quality control checks
+6. Enrich metadata with presentation information
+
+Formatting guidelines:
+- Use appropriate markdown formatting for structure
+- Ensure code blocks are properly formatted
+- Add visual elements (bullets, headers) where helpful
+- Keep responses well-organized and scannable
+- Maintain consistent formatting standards
+- Add source references when available
+- Use emphasis and formatting to highlight key points
+
+Quality standards:
+- Responses should be clear and comprehensive
+- Information should be accurate and well-presented
+- Formatting should enhance, not distract from content
+- Length should be appropriate for the question type
+- Technical content should be properly structured"""
+
+
+[agent_parameters]
+llm_max_tokens = 500
+llm_temperature = 0.1
+classification_max_tokens = 200
+classification_temperature = 0.1
+code_generation_max_tokens = 1000
+code_generation_temperature = 0.2
+conversation_max_tokens = 800
+conversation_temperature = 0.7
+review_max_tokens = 400
+review_temperature = 0.1
+synthesis_max_tokens = 800
+synthesis_temperature = 0.2
+
+[keyword_classification]
+code_keywords = ["how to", "tutorial", "example", "implement", "create", "build", "function", "class", "method", "script", "algorithm", "debug"]
+documentation_keywords = ["documentation", "docs", "langchain", "api", "library", "framework", "what is", "explain", "define", "difference", "compare", "technical"]
+conversation_keywords = ["hello", "hi", "thanks", "thank you", "good", "help", "general", "what do you think", "opinion", "chat", "talk", "discuss"]
 
 
 [agents.reviewer]

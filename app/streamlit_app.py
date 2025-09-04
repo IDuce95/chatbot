@@ -1,9 +1,10 @@
-import sys
-import os
-import requests
-import plotly.graph_objects as go
-import streamlit as st
 import datetime
+import os
+import sys
+
+import plotly.graph_objects as go
+import requests
+import streamlit as st
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -16,6 +17,7 @@ api_config = get_api_config()
 quality_config = get_quality_config()
 
 API_BASE_URL = os.getenv("API_BASE_URL", api_config["base_url"])
+
 
 st.set_page_config(
     page_title="CodeBot Assistant",
@@ -52,7 +54,7 @@ def initialize_session():
 
 def display_metrics_sidebar():
     st.sidebar.markdown("---")
-    st.sidebar.header("📊 Metrics")
+    st.sidebar.header("Metrics")
 
     try:
         response = requests.get(f"{API_BASE_URL}/metrics")
@@ -65,22 +67,6 @@ def display_metrics_sidebar():
     except Exception as e:
         st.sidebar.error(f"Error getting metrics: {e}")
         metrics_summary = {'total_interactions': 0}
-
-    try:
-        response = requests.get(f"{API_BASE_URL}/agents/info")
-        if response.status_code == 200:
-            agent_info = response.json()
-            if agent_info.get("agent_system_active", False):
-                st.sidebar.success("🤖 Multi-Agent System: ACTIVE")
-                st.sidebar.markdown("**Agent Types:**")
-                for agent in agent_info.get("available_agents", []):
-                    st.sidebar.markdown(f"- {agent['icon']} {agent['name']}")
-            else:
-                st.sidebar.warning("⚠️ Agent System: INACTIVE")
-        else:
-            st.sidebar.warning("🔄 Agent System: UNKNOWN")
-    except Exception as e:
-        st.sidebar.warning(f"🔄 Agent System: ERROR - {e}")
 
     if metrics_summary.get('total_interactions', 0) > 0:
         col1, col2 = st.sidebar.columns(2)
@@ -144,13 +130,13 @@ def main():
     initialize_session()
 
     with st.sidebar:
-        st.header("Settings")
+        st.header("Info")
 
         try:
             response = requests.get(f"{API_BASE_URL}/")
             if response.status_code == 200:
                 data = response.json()
-                st.info(data.get("model_info", "CodeBot API connected"))
+                st.success(data.get("model_info", "Unknown"))
             else:
                 st.warning("API connection issue")
         except Exception as e:
@@ -168,6 +154,22 @@ def main():
                 st.warning("RAG knowledge base: Unknown")
         except Exception:
             st.warning("RAG knowledge base: Error")
+
+        try:
+            response = requests.get(f"{API_BASE_URL}/agents/info")
+            if response.status_code == 200:
+                agent_info = response.json()
+                if agent_info.get("agent_system_active", False):
+                    st.sidebar.success("Multi-Agent System: ON")
+                    st.sidebar.markdown("**Agents:**")
+                    for agent in agent_info.get("available_agents", []):
+                        st.sidebar.markdown(f"- {agent['name']}")
+                else:
+                    st.sidebar.warning("Agent System: OFF")
+            else:
+                st.sidebar.warning("🔄 Agent System: UNKNOWN")
+        except Exception as e:
+            st.sidebar.warning(f"🔄 Agent System: ERROR - {e}")
 
         if st.button("Clear chat history", type="secondary"):
             try:
@@ -223,18 +225,14 @@ def display_chat_interface():
                     agent_steps = message.get("agent_steps", [])
 
                     if agents_used:
-                        agent_icons = {
-                            "router": "🎯", "research": "📚", "code": "💻",
-                            "reviewer": "✅", "direct": "🔄"
-                        }
-                        agent_display = " → ".join([f"{agent_icons.get(agent, '🔧')} {agent.title()}" for agent in agents_used])
+                        agent_display = " → ".join([f"{agent.title()}" for agent in agents_used])
 
                         col1, col2, col3 = st.columns([3, 1, 1])
                         with col1:
-                            st.caption(f"🤖 Agent Path: {agent_display}")
+                            st.caption(f"Agent Path: {agent_display}")
                         with col2:
                             if intent:
-                                st.caption(f"🎯 Intent: {intent}")
+                                st.caption(f"Intent: {intent}")
                         with col3:
                             if quality_score > 0:
                                 excellent_threshold = quality_config["excellent_threshold"]
@@ -243,7 +241,7 @@ def display_chat_interface():
                                 st.caption(f"{quality_color} Quality: {quality_score:.1f}")
 
                         if agent_steps:
-                            with st.expander("🔍 View Agent Steps", expanded=False):
+                            with st.expander("View steps", expanded=False):
                                 for step in agent_steps:
                                     st.markdown(f"- {step}")
                     elif message.get("rag_used", False):
@@ -290,7 +288,7 @@ def display_chat_interface():
                                 self.steps = []
 
                             def process_query_with_steps(self, query):
-                                self.steps.append("🎯 Router Agent: Analyzing query intent...")
+                                self.steps.append("Router Agent: Analyzing query intent...")
                                 steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
 
                                 api_result = call_api_chat(query)
@@ -316,29 +314,27 @@ def display_chat_interface():
                                 intent = result.get("intent", "")
 
                                 self.steps = []
-                                agent_icons = {"router": "🎯", "research": "📚", "code": "💻", "reviewer": "✅", "direct": "🔄"}
 
                                 for i, agent in enumerate(agents_used):
-                                    icon = agent_icons.get(agent, "🔧")
                                     if agent == "router":
-                                        self.steps.append(f"{icon} Router Agent: Intent classified as {intent}")
+                                        self.steps.append(f"Router Agent: Intent classified as {intent}")
                                     elif agent == "research":
-                                        self.steps.append(f"{icon} Research Agent: Searching documentation...")
-                                        self.steps.append("📖 Research Agent: Found relevant information")
+                                        self.steps.append("Research Agent: Searching documentation...")
+                                        self.steps.append("Research Agent: Found relevant information")
                                     elif agent == "code":
-                                        self.steps.append(f"{icon} Code Agent: Generating code solution...")
-                                        self.steps.append("✨ Code Agent: Code generated and formatted")
+                                        self.steps.append("Code Agent: Generating code solution...")
+                                        self.steps.append("Code Agent: Code generated and formatted")
                                     elif agent == "reviewer":
-                                        self.steps.append(f"{icon} Reviewer Agent: Evaluating response quality...")
+                                        self.steps.append("Reviewer Agent: Evaluating response quality...")
                                         quality = result.get("quality_score", 0)
                                         quality_emoji = "🟢" if quality >= 4 else "🟡" if quality >= 3 else "🔴"
                                         self.steps.append(f"{quality_emoji} Reviewer Agent: Quality score: {quality:.1f}")
                                     elif agent == "direct":
-                                        self.steps.append(f"{icon} Direct Response: Generating answer...")
+                                        self.steps.append("Direct Response: Generating answer...")
 
                                     steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
 
-                                self.steps.append("✅ Processing complete!")
+                                self.steps.append("Processing complete!")
                                 steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
 
                                 return result

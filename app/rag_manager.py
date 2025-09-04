@@ -8,6 +8,7 @@ from langchain_chroma import Chroma
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+
 from .rag_metrics import RAGMetrics
 
 
@@ -200,7 +201,7 @@ class RAGManager:
 
         results = self.search_documents_with_scores(query, k)
         if not results:
-            return "", False
+            return "", False, 0, []
 
         relevant_docs = []
         retrieved_docs_info = []
@@ -219,17 +220,19 @@ class RAGManager:
                 relevant_docs.append(doc)
 
         if not relevant_docs:
-            return "", False
+            return "", False, 0, []
 
         context_parts = []
+        source_files = []
         for i, doc in enumerate(relevant_docs, 1):
             source = doc.metadata.get('source_file', 'unknown')
+            source_files.append(source)
             content = doc.page_content.strip()
             context_parts.append(f"[Doc {i} - {source}]\n{content}")
 
         context = "\n\n".join(context_parts)
 
-        return context, True
+        return context, True, len(relevant_docs), source_files
 
     def initialize_database(self):
         print("Initializing RAG database...")

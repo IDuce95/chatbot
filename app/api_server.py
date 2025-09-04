@@ -111,10 +111,10 @@ async def get_agents_info():
 
         if hasattr(bot, 'use_agents') and bot.use_agents:
             agent_types = [
-                {"name": "Router Agent", "icon": "🎯", "purpose": "Query intent classification"},
-                {"name": "Research Agent", "icon": "📚", "purpose": "Knowledge base search"},
-                {"name": "Code Agent", "icon": "💻", "purpose": "Code generation and examples"},
-                {"name": "Reviewer Agent", "icon": "✅", "purpose": "Quality assessment and feedback"}
+                {"name": "Router Agent", "purpose": "Query intent classification"},
+                {"name": "Research Agent", "purpose": "Knowledge base search"},
+                {"name": "Code Agent", "purpose": "Code generation and examples"},
+                {"name": "Reviewer Agent", "purpose": "Quality assessment and feedback"}
             ]
 
             return {

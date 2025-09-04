@@ -1,6 +1,3 @@
-"""
-Configuration utilities for the chatbot project
-"""
 import toml
 import os
 from typing import Dict, Any
@@ -29,8 +26,6 @@ def get_quality_config(config: Dict[str, Any] = None) -> Dict[str, Any]:
         config = load_config()
 
     return config.get("quality", {
-        "minimum_overall_score": 1.0,
-        "minimum_critical_aspects_score": 1.0,
         "excellent_threshold": 4.0,
         "good_threshold": 3.0
     })

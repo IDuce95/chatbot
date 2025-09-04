@@ -57,3 +57,9 @@ class ReviewVerdict(BaseModel):
     )
     reason: str = Field(description="Reason for the verdict")
     quality: QualityScore = Field(description="Quality breakdown")
+
+
+class ResponseFormat(BaseModel):
+    content: str
+    metadata: Optional[Dict[str, Any]] = None
+    format_type: str = "text"

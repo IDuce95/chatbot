@@ -1,5 +1,5 @@
-from .base_agent import BaseAgent
-from .state import AgentState
+from ..base_agent import BaseAgent
+from ..state import AgentState
 
 
 class CodeAgent(BaseAgent):
@@ -27,14 +27,12 @@ class CodeAgent(BaseAgent):
         return "\n".join(context_parts)
 
     def _generate_code_with_context(self, state: AgentState, context: str) -> str:
-        prompt = f"""
-{self.prompt}
+        prompt = f"""{self.prompt}
 
 Documentation Context:
 {context}
 
-{self.config["agents"]["code"]["code_generation_template"]}
-"""
+{self.config["agents"]["code"]["code_generation_template"]}"""
 
         return self._call_llm_with_context(state, prompt, max_tokens=1000, temperature=0.2)
 
@@ -42,16 +40,31 @@ Documentation Context:
         research_results = state.get("research_results", [])
 
         try:
+            print("CodeAgent: Using CodeGeneratorTool to create code solution...")
             context = self._format_research_context(research_results)
+
+            if research_results:
+                num_sources = state.get("metadata", {}).get("num_sources", 0)
+                if num_sources > 0:
+                    print(f"CodeAgent: Using context from {num_sources} source documents for code generation")
+                else:
+                    print("CodeAgent: Using research context for code generation")
+            else:
+                print("CodeAgent: Generating code without specific documentation context")
+
             code_response = self._generate_code_with_context(state, context)
+
+            print("CodeAgent: Applying LinterTool for code formatting and validation...")
             formatted_code = self._format_and_validate_code(code_response)
 
             state["generated_code"] = formatted_code
             state["metadata"]["code_generated"] = True
             state["metadata"]["context_used"] = len(research_results) > 0
 
+            print("CodeAgent: Code generation and validation complete")
+
         except Exception as e:
-            print(f"Code generation error: {e}")
+            print(f"❌ CodeAgent error: {e}")
             state["generated_code"] = None
             state["metadata"]["code_error"] = str(e)
 

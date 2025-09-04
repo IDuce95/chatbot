@@ -1,5 +1,5 @@
-from .base_agent import BaseAgent
-from .state import AgentState
+from ..base_agent import BaseAgent
+from ..state import AgentState
 
 
 class ResearchAgent(BaseAgent):
@@ -24,33 +24,47 @@ class ResearchAgent(BaseAgent):
             iteration_count = state.get("iteration_count", 0)
 
             if iteration_count > 0 and improvement_feedback:
-                print(f"🔄 Research retry with feedback: {improvement_feedback}")
+                print(f"ResearchAgent: Retry with feedback: {improvement_feedback}")
                 enhanced_query = self._enhance_query_with_feedback(user_query, improvement_feedback, quality_issues)
                 refined_query = self._refine_query(enhanced_query)
             else:
+                print("ResearchAgent: Refining search query...")
                 refined_query = self._refine_query(user_query)
+                print(f"ResearchAgent: Query refined to: '{refined_query[:60]}...'")
 
             if self.rag_manager:
-                context_data = self.rag_manager.get_context_with_relevance(refined_query)
+                print("ResearchAgent: Searching documentation with RAG manager...")
+                context, has_relevant_docs, num_sources, source_files = self.rag_manager.get_context_with_relevance(refined_query)
 
-                if context_data and len(context_data) > 0:
-                    research_results = self._process_retrieval_results(context_data, user_query)
-                    relevance_score = self._evaluate_relevance(research_results, user_query)
+                if has_relevant_docs and context:
+                    print(f"ResearchAgent: Found relevant context from {num_sources} sources")
+
+                    research_results = [{
+                        'content': context,
+                        'source': 'Documentation',
+                        'relevance': 0.8,
+                        'rank': 1
+                    }]
+
+                    relevance_score = self._evaluate_relevance(research_results)
 
                     state["research_results"] = research_results
                     state["metadata"]["relevance_score"] = relevance_score
                     state["metadata"]["refined_query"] = refined_query
-                    state["metadata"]["num_sources"] = len(context_data)
+                    state["metadata"]["num_sources"] = num_sources
+                    state["metadata"]["source_files"] = source_files
                 else:
+                    print("❌ ResearchAgent: No relevant documents found in vector database")
                     state["research_results"] = []
                     state["metadata"]["relevance_score"] = 0.0
                     state["metadata"]["no_relevant_docs"] = True
             else:
+                print("❌ ResearchAgent: RAG manager not available")
                 state["research_results"] = []
                 state["metadata"]["rag_unavailable"] = True
 
         except Exception as e:
-            print(f"Research error: {e}")
+            print(f"❌ ResearchAgent error: {e}")
             state["research_results"] = []
             state["metadata"]["research_error"] = str(e)
 
@@ -86,26 +100,7 @@ class ResearchAgent(BaseAgent):
         except Exception:
             return query
 
-    def _process_retrieval_results(self, context_data: list, original_query: str) -> list:
-        processed_results = []
-
-        for item in context_data[:5]:
-            if isinstance(item, dict) and 'content' in item:
-                processed_results.append({
-                    'content': item['content'],
-                    'source': item.get('source', 'Unknown'),
-                    'relevance': item.get('relevance_score', 0.0)
-                })
-            elif isinstance(item, str):
-                processed_results.append({
-                    'content': item,
-                    'source': 'Documentation',
-                    'relevance': 0.5
-                })
-
-        return processed_results
-
-    def _evaluate_relevance(self, results: list, query: str) -> float:
+    def _evaluate_relevance(self, results: list) -> float:
         if not results:
             return 0.0
 

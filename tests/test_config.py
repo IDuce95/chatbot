@@ -29,8 +29,6 @@ class TestConfiguration:
 
     def test_quality_configuration_structure(self, quality_config):
         required_keys = [
-            "minimum_overall_score",
-            "minimum_critical_aspects_score",
             "excellent_threshold",
             "good_threshold"
         ]
@@ -41,8 +39,6 @@ class TestConfiguration:
 
     def test_quality_thresholds_logical_order(self, quality_config):
         assert quality_config["good_threshold"] < quality_config["excellent_threshold"]
-        assert quality_config["minimum_overall_score"] > 0
-        assert quality_config["minimum_critical_aspects_score"] > 0
 
     @pytest.mark.parametrize("score,expected_classification", [
         (1.5, "poor"),
