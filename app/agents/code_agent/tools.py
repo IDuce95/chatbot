@@ -25,7 +25,7 @@ class CodeGeneratorTool(BaseTool):
                 model=self.chatbot.config["model"]["name"],
                 messages=messages,
                 max_tokens=self.config['agent_parameters']['code_generation_max_tokens'],
-                temperature=0.3
+                temperature=self.config['agent_parameters']['code_generation_temperature']
             )
 
             generated_code = response.choices[0].message.content.strip()
