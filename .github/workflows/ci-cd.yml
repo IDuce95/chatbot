@@ -95,10 +95,23 @@ jobs:
         
         # Test API container
         docker run --rm -d --name test-api -p 8001:8000 --env-file .env.test chatbot-api:test
-        sleep 10
         
-        # Basic health check
-        curl -f http://localhost:8001/health || exit 1
+        # Wait for API container to become healthy (max 30s)
+        for i in {1..30}; do
+          if curl -fs http://localhost:8001/health; then
+            echo "API is healthy!"
+            break
+          fi
+          echo "Waiting for API to become healthy... ($i/30)"
+          sleep 1
+        done
+        # Fail if not healthy after 30s
+        if ! curl -fs http://localhost:8001/health; then
+          echo "API did not become healthy in time."
+          docker logs test-api
+          docker stop test-api
+          exit 1
+        fi
         
         # Stop container
         docker stop test-api
