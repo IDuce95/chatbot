@@ -221,14 +221,16 @@ class AgentGraph:
         combined_content = "\n\n".join(content_parts)
 
         try:
-            synthesis_prompt = f"""Based on the following documentation, provide a clear and comprehensive answer to the user's question.
+            synthesis_prompt = f"""Based on the following documentation,
+            provide a clear and comprehensive answer to the user's question.
 
 User Question: {user_query}
 
 Documentation:
 {combined_content}
 
-Please provide a well-structured, informative response that directly answers the user's question using the information from the documentation."""
+Please provide a well-structured, informative response that directly answers
+the user's question using the information from the documentation."""
 
             messages = [{"role": "user", "content": synthesis_prompt}]
 

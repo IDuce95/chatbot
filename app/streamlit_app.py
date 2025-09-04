@@ -1,15 +1,9 @@
 import datetime
 import os
-import sys
 
 import plotly.graph_objects as go
 import requests
 import streamlit as st
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, current_dir)
-
 from config_utils import get_api_config, get_quality_config
 
 api_config = get_api_config()
