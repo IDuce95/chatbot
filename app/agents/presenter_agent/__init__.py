@@ -1,3 +1,3 @@
 from .agent import PresenterAgent
 
-__all__ = ['PresenterAgent']
+__all__ = ["PresenterAgent"]

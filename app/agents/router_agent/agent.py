@@ -1,6 +1,6 @@
+from ...pydantic_models import RouterDecision
 from ..base_agent import BaseAgent
 from ..state import AgentState
-from ...pydantic_models import RouterDecision
 from .tools import ClassifierTool, DelegationTool
 
 
@@ -27,13 +27,13 @@ class RouterAgent(BaseAgent):
 
             decision = self._classify_intent(state)
 
-            print(f"RouterAgent: Intent classified as: {decision.intent} (confidence: {decision.confidence:.2f})")
+            print(
+                f"RouterAgent: Intent classified as: {decision.intent} (confidence: {decision.confidence:.2f})"
+            )
             print("RouterAgent: Using DelegationTool to determine target agent...")
 
             delegation_info = self.delegator.execute(
-                decision,
-                user_query,
-                state.get("conversation_history", [])
+                decision, user_query, state.get("conversation_history", [])
             )
 
             state["intent_classification"] = decision.intent

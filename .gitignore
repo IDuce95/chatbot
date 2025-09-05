@@ -4,5 +4,5 @@ todo.txt
 .vscode
 __pycache__
 *.pdf
-.github/
 .gitlab-ci.yml
+copilot-instructions.md

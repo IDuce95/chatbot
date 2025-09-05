@@ -1,17 +1,10 @@
 import datetime
 import os
-import sys
 
 import plotly.graph_objects as go
 import requests
 import streamlit as st
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.dirname(current_dir)
-sys.path.insert(0, current_dir)
-
 from config_utils import get_api_config, get_quality_config
-
 
 api_config = get_api_config()
 quality_config = get_quality_config()
@@ -23,7 +16,7 @@ st.set_page_config(
     page_title="CodeBot Assistant",
     page_icon="🤖",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
 
@@ -33,7 +26,7 @@ def call_api_chat(message: str):
             f"{API_BASE_URL}/chat",
             json={"message": message},
             headers={"Content-Type": "application/json"},
-            timeout=30
+            timeout=30,
         )
 
         if response.status_code == 200:
@@ -48,7 +41,7 @@ def call_api_chat(message: str):
 
 
 def initialize_session():
-    if 'messages' not in st.session_state:
+    if "messages" not in st.session_state:
         st.session_state.messages = []
 
 
@@ -63,24 +56,34 @@ def display_metrics_sidebar():
             metrics_summary = metrics_data.get("metrics", {})
         else:
             st.sidebar.error(f"Failed to fetch metrics: {response.status_code}")
-            metrics_summary = {'total_interactions': 0}
+            metrics_summary = {"total_interactions": 0}
     except Exception as e:
         st.sidebar.error(f"Error getting metrics: {e}")
-        metrics_summary = {'total_interactions': 0}
+        metrics_summary = {"total_interactions": 0}
 
-    if metrics_summary.get('total_interactions', 0) > 0:
+    if metrics_summary.get("total_interactions", 0) > 0:
         col1, col2 = st.sidebar.columns(2)
 
         with col1:
-            st.metric("Total interactions", metrics_summary.get('total_interactions', 0))
+            st.metric(
+                "Total interactions", metrics_summary.get("total_interactions", 0)
+            )
             st.metric("RAG usage", f"{metrics_summary.get('rag_usage_rate', 0):.1%}")
 
         with col2:
-            st.metric("Avg response time", f"{metrics_summary.get('avg_response_time', 0):.2f}s")
-            st.metric("Total session time", f"{metrics_summary.get('total_session_time', 0):.1f}s")
+            st.metric(
+                "Avg response time",
+                f"{metrics_summary.get('avg_response_time', 0):.2f}s",
+            )
+            st.metric(
+                "Total session time",
+                f"{metrics_summary.get('total_session_time', 0):.1f}s",
+            )
 
         if st.sidebar.button("View detailed metrics"):
-            st.session_state.show_detailed_metrics = not st.session_state.get('show_detailed_metrics', False)
+            st.session_state.show_detailed_metrics = not st.session_state.get(
+                "show_detailed_metrics", False
+            )
             st.rerun()
 
         if st.sidebar.button("Export metrics"):
@@ -88,14 +91,16 @@ def display_metrics_sidebar():
                 response = requests.post(f"{API_BASE_URL}/metrics/export")
                 if response.status_code == 200:
                     result = response.json()
-                    st.sidebar.success(f"Metrics exported: {result.get('message', 'Success')}")
+                    st.sidebar.success(
+                        f"Metrics exported: {result.get('message', 'Success')}"
+                    )
                     st.session_state.exported_metrics = True
                 else:
                     st.sidebar.error(f"Export failed: {response.status_code}")
             except Exception as e:
                 st.sidebar.error(f"Export failed: {e}")
 
-        if st.session_state.get('exported_metrics', False):
+        if st.session_state.get("exported_metrics", False):
             if st.sidebar.button("🗑️ Clear Exported Metrics"):
                 try:
                     response = requests.delete(f"{API_BASE_URL}/metrics")
@@ -184,7 +189,7 @@ def main():
 
         display_metrics_sidebar()
 
-    if st.session_state.get('show_detailed_metrics', False):
+    if st.session_state.get("show_detailed_metrics", False):
         chat_col, separator_col, metrics_col = st.columns([2, 0.1, 1])
 
         with chat_col:
@@ -201,7 +206,7 @@ def main():
                     width: 1px;
                 "></div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
         with metrics_col:
@@ -212,7 +217,7 @@ def main():
 
 
 def display_chat_interface():
-    chat_height = 800 if st.session_state.get('show_detailed_metrics', False) else 580
+    chat_height = 800 if st.session_state.get("show_detailed_metrics", False) else 580
     chat_container = st.container(height=chat_height)
 
     with chat_container:
@@ -225,7 +230,9 @@ def display_chat_interface():
                     agent_steps = message.get("agent_steps", [])
 
                     if agents_used:
-                        agent_display = " → ".join([f"{agent.title()}" for agent in agents_used])
+                        agent_display = " → ".join(
+                            [f"{agent.title()}" for agent in agents_used]
+                        )
 
                         col1, col2, col3 = st.columns([3, 1, 1])
                         with col1:
@@ -235,10 +242,22 @@ def display_chat_interface():
                                 st.caption(f"Intent: {intent}")
                         with col3:
                             if quality_score > 0:
-                                excellent_threshold = quality_config["excellent_threshold"]
+                                excellent_threshold = quality_config[
+                                    "excellent_threshold"
+                                ]
                                 good_threshold = quality_config["good_threshold"]
-                                quality_color = "🟢" if quality_score >= excellent_threshold else "🟡" if quality_score >= good_threshold else "🔴"
-                                st.caption(f"{quality_color} Quality: {quality_score:.1f}")
+                                quality_color = (
+                                    "🟢"
+                                    if quality_score >= excellent_threshold
+                                    else (
+                                        "🟡"
+                                        if quality_score >= good_threshold
+                                        else "🔴"
+                                    )
+                                )
+                                st.caption(
+                                    f"{quality_color} Quality: {quality_score:.1f}"
+                                )
 
                         if agent_steps:
                             with st.expander("View steps", expanded=False):
@@ -248,28 +267,40 @@ def display_chat_interface():
                         st.caption("🧠 Enhanced with knowledge base")
 
                     gen_metrics = message.get("generation_metrics", {})
-                    if gen_metrics and not st.session_state.get('show_detailed_metrics', False):
+                    if gen_metrics and not st.session_state.get(
+                        "show_detailed_metrics", False
+                    ):
                         col1, col2 = st.columns([4, 1])
                         with col1:
                             st.markdown(message["content"])
                         with col2:
                             with st.expander("📊 Metrics"):
-                                if 'response_word_count' in gen_metrics:
-                                    st.metric("Words", gen_metrics['response_word_count'])
-                                if 'perplexity_approx' in gen_metrics:
-                                    st.metric("Perplexity", f"{gen_metrics['perplexity_approx']:.1f}")
-                                if 'unique_word_ratio' in gen_metrics:
-                                    st.metric("Uniqueness", f"{gen_metrics['unique_word_ratio']:.2f}")
+                                if "response_word_count" in gen_metrics:
+                                    st.metric(
+                                        "Words", gen_metrics["response_word_count"]
+                                    )
+                                if "perplexity_approx" in gen_metrics:
+                                    st.metric(
+                                        "Perplexity",
+                                        f"{gen_metrics['perplexity_approx']:.1f}",
+                                    )
+                                if "unique_word_ratio" in gen_metrics:
+                                    st.metric(
+                                        "Uniqueness",
+                                        f"{gen_metrics['unique_word_ratio']:.2f}",
+                                    )
                     else:
                         st.markdown(message["content"])
                 else:
                     st.markdown(message["content"])
 
-        if st.session_state.get('processing_response', False):
+        if st.session_state.get("processing_response", False):
             with st.chat_message("assistant"):
                 try:
                     response = requests.get(f"{API_BASE_URL}/agents/info")
-                    use_agents = response.status_code == 200 and response.json().get("agent_system_active", False)
+                    use_agents = response.status_code == 200 and response.json().get(
+                        "agent_system_active", False
+                    )
                 except Exception:
                     use_agents = False
 
@@ -288,8 +319,13 @@ def display_chat_interface():
                                 self.steps = []
 
                             def process_query_with_steps(self, query):
-                                self.steps.append("Router Agent: Analyzing query intent...")
-                                steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+                                self.steps.append(
+                                    "Router Agent: Analyzing query intent..."
+                                )
+                                steps_placeholder.markdown(
+                                    "**Agent Steps:**\n"
+                                    + "\n".join([f"- {step}" for step in self.steps])
+                                )
 
                                 api_result = call_api_chat(query)
 
@@ -298,16 +334,20 @@ def display_chat_interface():
                                         "response": "Failed to process query via API",
                                         "agents_used": ["error"],
                                         "intent": "error",
-                                        "quality_score": 0.0
+                                        "quality_score": 0.0,
                                     }
 
                                 result = {
                                     "response": api_result.get("response", ""),
                                     "agents_used": api_result.get("agents_used", []),
                                     "intent": api_result.get("intent", ""),
-                                    "quality_score": api_result.get("quality_score", 0.0),
-                                    "research_results": api_result.get("research_results", []),
-                                    "metadata": api_result.get("metadata", {})
+                                    "quality_score": api_result.get(
+                                        "quality_score", 0.0
+                                    ),
+                                    "research_results": api_result.get(
+                                        "research_results", []
+                                    ),
+                                    "metadata": api_result.get("metadata", {}),
                                 }
 
                                 agents_used = result.get("agents_used", [])
@@ -317,30 +357,60 @@ def display_chat_interface():
 
                                 for i, agent in enumerate(agents_used):
                                     if agent == "router":
-                                        self.steps.append(f"Router Agent: Intent classified as {intent}")
+                                        self.steps.append(
+                                            f"Router Agent: Intent classified as {intent}"
+                                        )
                                     elif agent == "research":
-                                        self.steps.append("Research Agent: Searching documentation...")
-                                        self.steps.append("Research Agent: Found relevant information")
+                                        self.steps.append(
+                                            "Research Agent: Searching documentation..."
+                                        )
+                                        self.steps.append(
+                                            "Research Agent: Found relevant information"
+                                        )
                                     elif agent == "code":
-                                        self.steps.append("Code Agent: Generating code solution...")
-                                        self.steps.append("Code Agent: Code generated and formatted")
+                                        self.steps.append(
+                                            "Code Agent: Generating code solution..."
+                                        )
+                                        self.steps.append(
+                                            "Code Agent: Code generated and formatted"
+                                        )
                                     elif agent == "reviewer":
-                                        self.steps.append("Reviewer Agent: Evaluating response quality...")
+                                        self.steps.append(
+                                            "Reviewer Agent: Evaluating response quality..."
+                                        )
                                         quality = result.get("quality_score", 0)
-                                        quality_emoji = "🟢" if quality >= 4 else "🟡" if quality >= 3 else "🔴"
-                                        self.steps.append(f"{quality_emoji} Reviewer Agent: Quality score: {quality:.1f}")
+                                        quality_emoji = (
+                                            "🟢"
+                                            if quality >= 4
+                                            else "🟡" if quality >= 3 else "🔴"
+                                        )
+                                        self.steps.append(
+                                            f"{quality_emoji} Reviewer Agent: Quality score: {quality:.1f}"
+                                        )
                                     elif agent == "direct":
-                                        self.steps.append("Direct Response: Generating answer...")
+                                        self.steps.append(
+                                            "Direct Response: Generating answer..."
+                                        )
 
-                                    steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+                                    steps_placeholder.markdown(
+                                        "**Agent Steps:**\n"
+                                        + "\n".join(
+                                            [f"- {step}" for step in self.steps]
+                                        )
+                                    )
 
                                 self.steps.append("Processing complete!")
-                                steps_placeholder.markdown("**Agent Steps:**\n" + "\n".join([f"- {step}" for step in self.steps]))
+                                steps_placeholder.markdown(
+                                    "**Agent Steps:**\n"
+                                    + "\n".join([f"- {step}" for step in self.steps])
+                                )
 
                                 return result
 
                         wrapper = StreamlitAgentProcessor()
-                        result = wrapper.process_query_with_steps(st.session_state.current_prompt)
+                        result = wrapper.process_query_with_steps(
+                            st.session_state.current_prompt
+                        )
 
                         response = result.get("response", "")
                         agents_used = result.get("agents_used", [])
@@ -359,7 +429,7 @@ def display_chat_interface():
                                 "agents_used": agents_used,
                                 "intent": intent,
                                 "quality_score": quality_score,
-                                "agent_steps": wrapper.steps
+                                "agent_steps": wrapper.steps,
                             }
                         else:
                             error_msg = "Failed to get response. Please try again!"
@@ -367,7 +437,7 @@ def display_chat_interface():
                             message_data = {
                                 "role": "assistant",
                                 "content": error_msg,
-                                "rag_used": False
+                                "rag_used": False,
                             }
 
                     except Exception as e:
@@ -378,12 +448,14 @@ def display_chat_interface():
                         message_data = {
                             "role": "assistant",
                             "content": error_msg,
-                            "rag_used": False
+                            "rag_used": False,
                         }
                 else:
                     with st.spinner("Thinking..."):
                         try:
-                            api_response = call_api_chat(st.session_state.current_prompt)
+                            api_response = call_api_chat(
+                                st.session_state.current_prompt
+                            )
 
                             if api_response and api_response.get("success"):
                                 response = api_response.get("response", "")
@@ -394,15 +466,17 @@ def display_chat_interface():
                                     "content": response,
                                     "rag_used": rag_used,
                                     "agents_used": api_response.get("agents_used", []),
-                                    "quality_score": api_response.get("quality_score", 0),
-                                    "intent": api_response.get("intent", "")
+                                    "quality_score": api_response.get(
+                                        "quality_score", 0
+                                    ),
+                                    "intent": api_response.get("intent", ""),
                                 }
                             else:
                                 error_msg = "Failed to get response. Please try again!"
                                 message_data = {
                                     "role": "assistant",
                                     "content": error_msg,
-                                    "rag_used": False
+                                    "rag_used": False,
                                 }
 
                         except Exception as e:
@@ -410,12 +484,12 @@ def display_chat_interface():
                             message_data = {
                                 "role": "assistant",
                                 "content": error_msg,
-                                "rag_used": False
+                                "rag_used": False,
                             }
 
                 st.session_state.messages.append(message_data)
                 st.session_state.processing_response = False
-                if 'current_prompt' in st.session_state:
+                if "current_prompt" in st.session_state:
                     del st.session_state.current_prompt
 
                 st.rerun()
@@ -456,61 +530,77 @@ def display_detailed_metrics_compact_api():
                 session_duration = (current_time - start_time).total_seconds()
                 st.metric("Session duration", f"{session_duration:.0f}s")
             else:
-                st.metric("Session duration", f"{metrics.get('total_session_time', 0):.1f}s")
+                st.metric(
+                    "Session duration", f"{metrics.get('total_session_time', 0):.1f}s"
+                )
 
             latest_interaction = metrics.get("latest_interaction", {})
             if latest_interaction:
                 st.markdown("**Latest response:**")
                 col3, col4 = st.columns(2)
                 with col3:
-                    if 'response_word_count' in latest_interaction:
-                        st.metric("Words", latest_interaction['response_word_count'])
-                    if 'agents_used' in latest_interaction and latest_interaction['agents_used']:
-                        agent_count = len([a for a in latest_interaction['agents_used'] if a.strip()])
+                    if "response_word_count" in latest_interaction:
+                        st.metric("Words", latest_interaction["response_word_count"])
+                    if (
+                        "agents_used" in latest_interaction
+                        and latest_interaction["agents_used"]
+                    ):
+                        agent_count = len(
+                            [a for a in latest_interaction["agents_used"] if a.strip()]
+                        )
                         st.metric("Agents used", agent_count)
                 with col4:
-                    if 'perplexity_approx' in latest_interaction:
-                        st.metric("Perplexity", f"{latest_interaction['perplexity_approx']:.1f}")
-                    if 'quality_score' in latest_interaction:
-                        st.metric("Quality", f"{latest_interaction['quality_score']:.1f}/5")
+                    if "perplexity_approx" in latest_interaction:
+                        st.metric(
+                            "Perplexity",
+                            f"{latest_interaction['perplexity_approx']:.1f}",
+                        )
+                    if "quality_score" in latest_interaction:
+                        st.metric(
+                            "Quality", f"{latest_interaction['quality_score']:.1f}/5"
+                        )
 
             response_times = metrics.get("response_time_history", [])
             if len(response_times) > 1:
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    y=response_times[-10:],
-                    mode='lines+markers',
-                    name='Response Time',
-                    line=dict(color='#1f77b4', width=2),
-                    marker=dict(size=6)
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        y=response_times[-10:],
+                        mode="lines+markers",
+                        name="Response Time",
+                        line=dict(color="#1f77b4", width=2),
+                        marker=dict(size=6),
+                    )
+                )
                 fig.update_layout(
                     title="Response time trend (last 10)",
                     height=200,
                     margin=dict(l=0, r=0, t=30, b=20),
                     showlegend=False,
                     xaxis_title="Interaction",
-                    yaxis_title="Time (s)"
+                    yaxis_title="Time (s)",
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
             quality_scores = metrics.get("quality_score_history", [])
             if len(quality_scores) > 1:
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    y=quality_scores[-10:],
-                    mode='lines+markers',
-                    name='Quality Score',
-                    line=dict(color='#2ca02c', width=2),
-                    marker=dict(size=6)
-                ))
+                fig.add_trace(
+                    go.Scatter(
+                        y=quality_scores[-10:],
+                        mode="lines+markers",
+                        name="Quality Score",
+                        line=dict(color="#2ca02c", width=2),
+                        marker=dict(size=6),
+                    )
+                )
                 fig.update_layout(
                     title="Quality trend (last 10)",
                     height=200,
                     margin=dict(l=0, r=0, t=30, b=20),
                     showlegend=False,
                     xaxis_title="Interaction",
-                    yaxis_title="Quality (1-5)"
+                    yaxis_title="Quality (1-5)",
                 )
                 st.plotly_chart(fig, use_container_width=True)
 

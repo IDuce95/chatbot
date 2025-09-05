@@ -24,10 +24,7 @@ class TestConfiguration:
         assert api_config["base_url"].startswith("http")
 
     def test_quality_configuration_structure(self, quality_config):
-        required_keys = [
-            "excellent_threshold",
-            "good_threshold"
-        ]
+        required_keys = ["excellent_threshold", "good_threshold"]
 
         for key in required_keys:
             assert key in quality_config
@@ -36,14 +33,19 @@ class TestConfiguration:
     def test_quality_thresholds_logical_order(self, quality_config):
         assert quality_config["good_threshold"] < quality_config["excellent_threshold"]
 
-    @pytest.mark.parametrize("score,expected_classification", [
-        (1.5, "poor"),
-        (2.5, "poor"),
-        (3.5, "good"),
-        (4.5, "excellent"),
-        (5.0, "excellent")
-    ])
-    def test_quality_score_classification(self, quality_config, score, expected_classification):
+    @pytest.mark.parametrize(
+        "score,expected_classification",
+        [
+            (1.5, "poor"),
+            (2.5, "poor"),
+            (3.5, "good"),
+            (4.5, "excellent"),
+            (5.0, "excellent"),
+        ],
+    )
+    def test_quality_score_classification(
+        self, quality_config, score, expected_classification
+    ):
         excellent_threshold = quality_config["excellent_threshold"]
         good_threshold = quality_config["good_threshold"]
 

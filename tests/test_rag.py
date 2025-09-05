@@ -25,8 +25,8 @@ class TestRAG:
             assert len(chunks) >= 2
 
             for chunk in chunks:
-                assert hasattr(chunk, 'page_content')
-                assert hasattr(chunk, 'metadata')
+                assert hasattr(chunk, "page_content")
+                assert hasattr(chunk, "metadata")
                 assert len(chunk.page_content) > 0
 
         except FileNotFoundError:
@@ -42,16 +42,16 @@ class TestRAG:
         assert good_mock.page_content == "Test content"
         assert good_mock.metadata["source"] == "test.pdf"
 
-        assert hasattr(good_mock, 'page_content')
-        assert hasattr(good_mock, 'metadata')
+        assert hasattr(good_mock, "page_content")
+        assert hasattr(good_mock, "metadata")
 
     def test_load_pdf_documents_method_exists(self):
         try:
             rag = RAGManager("config.toml")
-            assert hasattr(rag, 'load_pdf_documents')
-            assert hasattr(rag, 'split_documents')
-            assert hasattr(rag, 'search_documents')
-            assert hasattr(rag, 'get_context_with_relevance')
+            assert hasattr(rag, "load_pdf_documents")
+            assert hasattr(rag, "split_documents")
+            assert hasattr(rag, "search_documents")
+            assert hasattr(rag, "get_context_with_relevance")
 
         except FileNotFoundError:
             pytest.skip("config.toml not found - skipping test")

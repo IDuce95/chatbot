@@ -1,4 +1,4 @@
-.PHONY: run test streamlit api
+.PHONY: streamlit api docker test integration_test linting flake8
 
 streamlit:
 	python -m streamlit run app/streamlit_app.py
@@ -11,3 +11,14 @@ docker:
 
 test:
 	python -m pytest tests/ -v
+
+integration_test:
+	python -m pytest tests/ -m integration -v
+
+linting:
+	isort app/ tests/
+	black app/ tests/
+
+flake8:
+	flake8 app/ tests/ --count --select=E9,F63,F7,F82 --show-source --statistics
+	flake8 app/ tests/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
